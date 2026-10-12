@@ -1,0 +1,152 @@
+{
+  "clip": "chinatown",
+  "fps": 24,
+  "width": 960,
+  "height": 540,
+  "frameCount": 3196,
+  "route": {
+    "pts": [
+      [
+        0,
+        0
+      ],
+      [
+        5.81,
+        5.49
+      ],
+      [
+        8.61,
+        5.18
+      ],
+      [
+        15.45,
+        4.34
+      ],
+      [
+        25.66,
+        3.11
+      ],
+      [
+        28.7,
+        2.82
+      ],
+      [
+        26.61,
+        -14.66
+      ],
+      [
+        25.63,
+        -18.15
+      ],
+      [
+        25.28,
+        -23.66
+      ],
+      [
+        25.03,
+        -27.41
+      ],
+      [
+        25.01,
+        -30.3
+      ],
+      [
+        24.92,
+        -38.99
+      ],
+      [
+        25.83,
+        -48.59
+      ],
+      [
+        28.57,
+        -55.13
+      ],
+      [
+        35.91,
+        -52.05
+      ],
+      [
+        40.7,
+        -50.04
+      ],
+      [
+        46.14,
+        -47.75
+      ],
+      [
+        66.16,
+        -39.36
+      ],
+      [
+        89.46,
+        -29.59
+      ],
+      [
+        96.57,
+        -47.55
+      ],
+      [
+        108.14,
+        -76.75
+      ]
+    ],
+    "length": 206.6,
+    "from": "Happy Star Bakery Corporation",
+    "to": "Seward Park"
+  },
+  "chapters": [
+    {
+      "index": 0,
+      "start": 0,
+      "end": 468
+    },
+    {
+      "index": 1,
+      "start": 469,
+      "end": 758
+    },
+    {
+      "index": 2,
+      "start": 759,
+      "end": 1049
+    },
+    {
+      "index": 3,
+      "start": 1050,
+      "end": 1414
+    },
+    {
+      "index": 4,
+      "start": 1415,
+      "end": 2102
+    },
+    {
+      "index": 5,
+      "start": 2103,
+      "end": 2649
+    },
+    {
+      "index": 6,
+      "start": 2650,
+      "end": 3111
+    },
+    {
+      "index": 7,
+      "start": 3112,
+      "end": 3195
+    }
+  ],
+  "keys": {
+    "tartsView": 30,
+    "tartsLift": 60,
+    "tartsGone": 96,
+    "lobbyTurnEnd": 470,
+    "truckStop": 940,
+    "lkFrame": 1251,
+    "sprintStart": 1451,
+    "parkStart": 2103,
+    "dockStop": 3064
+  },
+  "attribution": "Map data (c) OpenStreetMap contributors, ODbL 1.0 (openstreetmap.org/copyright)"
+}

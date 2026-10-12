@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" font-family="Helvetica, Arial, sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker></defs>
+  <rect width="720" height="300" fill="#fff"/>
+  <g font-size="15" text-anchor="middle">
+    <rect x="30" y="40" width="150" height="70" rx="10" fill="#e8f3ff" stroke="#1f5f8b"/><text x="105" y="70" font-weight="700">1. Detect</text><text x="105" y="92" font-size="12">Shi–Tomasi corners</text>
+    <rect x="540" y="40" width="150" height="70" rx="10" fill="#fff4e5" stroke="#b4441c"/><text x="615" y="70" font-weight="700">2. Track</text><text x="615" y="92" font-size="12">pyramidal Lucas–Kanade</text>
+    <rect x="540" y="190" width="150" height="70" rx="10" fill="#fdecec" stroke="#b91c1c"/><text x="615" y="220" font-weight="700">3. Verify</text><text x="615" y="242" font-size="12">FB error, residual, λmin</text>
+    <rect x="30" y="190" width="150" height="70" rx="10" fill="#eaf7ee" stroke="#15803d"/><text x="105" y="220" font-weight="700">4. Replenish</text><text x="105" y="242" font-size="12">new corners in gaps</text>
+    <text x="360" y="140" font-size="18" font-weight="700">one loop per frame</text>
+    <text x="360" y="164" font-size="12" fill="#555">keeps ~N tracks alive</text>
+  </g>
+  <g stroke="#333" stroke-width="2" fill="none" marker-end="url(#a)">
+    <path d="M180 75 H538"/><path d="M615 110 V188"/><path d="M540 225 H182"/><path d="M105 190 V112"/>
+  </g>
+  <g font-size="12" fill="#333" text-anchor="middle">
+    <text x="360" y="66">points x_t</text><text x="660" y="155">x_{t+1}</text><text x="360" y="216">surviving tracks</text><text x="60" y="155">back to N</text>
+  </g>
+</svg>
