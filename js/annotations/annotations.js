@@ -1,7 +1,9 @@
 // Annotations: explanations drawn ON the footage, anchored to what they explain.
 //
 // A dialogue line may carry `focus` (one object or an array):
-//   { kind, at, title?, body?, win?, lag?, scale? }
+//   { kind, at, title?, body?, win?, lag?, scale?, widget? }
+//   widget  notebook playground id(s) (js/widgets/registry.js): adds a maximise button that opens
+//           the full playground over the footage ('Try it' kinds)
 //
 //   kind  one of KINDS below:
 //           'card' | 'tracks' | 'window' | 'tensor' | 'aperture' | 'flow' | 'lk'
@@ -11,6 +13,10 @@
 //           'fb'         forward–backward error ring on every track (scale, labels)
 //           'replenish'  tracks lost (×) and corners detected (rings) in the last `lag` frames
 //           'pyramid'    inset: the anchored track's motion at pyramid levels 0..3
+//           'tensorlab'  interactive: Flat / Edge / Corner presets plus window-size and
+//                        threshold sliders; the live structure tensor at the anchor
+//           'pyramidlab' interactive: frame-gap and pyramid-level sliders on the anchored
+//                        track, real frames; one-level vs pyramid Lucas–Kanade against the tracker
 //           'patches'    inset: patches around the anchored track; maps from
 //                        'prev' | 'next' | 'Ix' | 'Iy' | 'It'
 //         `lk` with start: [dx, dy] (or startOffset: [dx, dy] from OpenCV's answer), inset: true adds template / warped / error images and the
@@ -43,17 +49,19 @@
 import { inline, render } from '../lib/markup.js';
 import {
   toGray, gradients, structureTensor, eig2, classify, findExamples, lkTranslation, harris,
-  minEigenMap, downsample2, samplePatch, bilinear,
+  minEigenMap, downsample2, samplePatch, bilinear, buildPyramid, lkPyramid,
 } from '../lib/imageOps.js';
 import { arrow } from '../stage/scenes.js';
+import { getWidget } from '../widgets/registry.js';
 
 const TAU = 0.1; // classification threshold, same default as the Ch 2 widget
 const fmt = (v) => (Math.abs(v) >= 100 || (Math.abs(v) < 0.01 && v !== 0) ? v.toExponential(1) : v.toFixed(3));
 const CLASS_TEXT = { flat: 'Flat', edge: 'Edge', corner: 'Corner' };
 const fmtTex = (v) => fmt(v).replace(/e([+-]?)(\d+)$/, (_, sg, d) => `\\times 10^{${sg === '-' ? '-' : ''}${d}}`);
-const FOCUS_KINDS = new Set(['flow', 'lk', 'pyramid', 'patches', 'window']);
+const FOCUS_KINDS = new Set(['flow', 'lk', 'pyramid', 'pyramidlab', 'patches', 'window']);
+const TL_CLASSES = ['flat', 'edge', 'corner'];
 
-export function createAnnotations(layer, stage, { getSafeRect, onFocus }) {
+export function createAnnotations(layer, stage, { getSafeRect, onFocus, getWidgetApi }) {
   let items = [];
   let token = 0;
 
@@ -175,6 +183,12 @@ export function createAnnotations(layer, stage, { getSafeRect, onFocus }) {
         ${spec.title ? `<p class="annot__title">${inline(spec.title)}</p>` : ''}
         ${spec.body ? `<div class="annot__body">${render(spec.body)}</div>` : ''}
         <div class="annot__live" aria-live="off"></div>`;
+      if (spec.widget) {
+        const max = Object.assign(document.createElement('button'), { type: 'button', className: 'annot__max', title: 'Maximise: the full playground', innerHTML: '⤢' });
+        max.setAttribute('aria-label', 'Maximise the playground');
+        max.addEventListener('click', () => openMax(spec));
+        card.appendChild(max);
+      }
       layer.appendChild(card);
       ro.observe(card); // live readouts and KaTeX change its size after placement
       const it = { spec, kind, card, live: card.querySelector('.annot__live'), anchor: null, lockId: null, data: {}, stage, marks: [] };
@@ -189,7 +203,43 @@ export function createAnnotations(layer, stage, { getSafeRect, onFocus }) {
     stage.redraw();
   }
 
+  // --- maximised "Try it": the chapter's full notebook playground, over the footage -------
+  let maxed = null; // { el, offs, from }
+  function openMax(spec) {
+    closeMax();
+    const el = document.createElement('div');
+    el.className = 'tryit-max';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.innerHTML = `<div class="tryit-max__panel">
+      <header class="tryit-max__head"><h2>${inline(spec.title ?? 'Try it')}</h2><button type="button" class="tryit-max__close">Close <kbd>Esc</kbd></button></header>
+      <div class="tryit-max__body notebook__widget"></div></div>`;
+    const host = el.querySelector('.tryit-max__body');
+    const offs = [].concat(spec.widget).map((id) => {
+      const slot = host.appendChild(document.createElement('div'));
+      slot.className = 'notebook__playground';
+      try { return getWidget(id)(slot, getWidgetApi()) ?? null; } catch (err) { console.warn(`widget ${id}`, err); return null; }
+    });
+    maxed = { el, offs, from: document.activeElement };
+    document.body.append(el);
+    document.body.classList.add('tryit-open');
+    const closeBtn = el.querySelector('.tryit-max__close');
+    closeBtn.addEventListener('click', closeMax);
+    el.addEventListener('click', (e) => { if (e.target === el) closeMax(); });
+    el.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeMax(); } else e.stopPropagation(); });
+    closeBtn.focus();
+  }
+  function closeMax() {
+    if (!maxed) return;
+    maxed.offs.forEach((off) => off?.());
+    maxed.el.remove();
+    document.body.classList.remove('tryit-open');
+    maxed.from?.focus?.();
+    maxed = null;
+  }
+
   function clear() {
+    closeMax();
     token++;
     active = null;
     onFocus?.([]);
@@ -400,7 +450,7 @@ const KINDS = {
 
   // Live structure tensor at the anchor: window + gradient-spread ellipse.
   tensor: {
-    reach: (it) => (it.spec.win ?? 7) * 2.5,
+    reach: (it) => (it.data.half ?? it.spec.win ?? 7) * 2.5,
     async init(it, stage, getSafeRect) { await autoAnchor(it, stage, getSafeRect); },
     onFrame(it, stage) {
       const a = it.anchor ?? it.data.auto;
@@ -428,7 +478,7 @@ const KINDS = {
       stage.redraw();
     },
     draw(ctx, it, a, info) {
-      const half = it.spec.win ?? 7;
+      const half = it.data.half ?? it.spec.win ?? 7;
       const color = { flat: info.colors.hairline, edge: '#f59e0b', corner: '#34d399' }[it.data.cls] ?? info.colors.focus;
       windowBox(ctx, a, half, info.px, color, false);
       if (it.data.cls) mark(it, it.data.cls, a.x, a.y, half);
@@ -444,6 +494,27 @@ const KINDS = {
       ctx.ellipse(a.x, a.y, Math.max(r1, info.px), Math.max(r2, info.px), Math.atan2(t.v1[1], t.v1[0]), 0, Math.PI * 2);
       ctx.stroke();
     },
+  },
+
+  // Interactive: pick Flat / Edge / Corner (or resize the window, move the threshold) and watch
+  // the structure tensor, its ellipse and the verdict change on the real footage.
+  tensorlab: {
+    reach: (it) => (it.data.half ?? 7) * 2.5,
+    async init(it, stage, getSafeRect) {
+      const d = it.data;
+      d.half = it.spec.win ?? 7; d.tau = TAU;
+      buildTensorLab(it);
+      const an = analyse(stage);
+      if (!an) return;
+      const s = getSafeRect(), m = d.half + 6;
+      const [rx0, ry0, rx1, ry1] = it.spec.at?.region ?? [0, 0, an.w, an.h];
+      const box = [Math.max(s.x0 + m, rx0 + m), Math.max(s.y0 + m, ry0 + m), Math.min(s.x1 - m, rx1 - m), Math.min(s.y1 - m, ry1 - m)];
+      d.examples = findExamples(an.gray, an.w, an.h, d.half, TAU, 5, box);
+      it.live.querySelectorAll('[data-p]').forEach((b) => { b.disabled = !d.examples[b.dataset.p]; });
+      pickTensorLab(it, it.spec.at?.auto ?? 'corner');
+    },
+    onFrame(it, stage) { it.data.an = analyse(stage); computeTensorLab(it); },
+    draw(ctx, it, a, info) { KINDS.tensor.draw(ctx, it, a, info); },
   },
 
   // Aperture problem on an edge: gradient (observable) vs. along-edge (not).
@@ -750,6 +821,16 @@ const KINDS = {
     },
   },
 
+  // Interactive: how far can Lucas–Kanade reach? Real frames at the anchored track.
+  pyramidlab: {
+    reach: () => 20,
+    draw(ctx, it, a, info) {
+      mark(it, 'focus', a.x, a.y);
+      if (!it.data.lab) buildLab(it);
+      if (it.data.labFor !== a.id && !it.data.labBusy) loadLab(it, a, info.frame);
+    },
+  },
+
   // Inset: patches around the anchored track (brightness constancy, gradients).
   patches: {
     reach: () => 16,
@@ -795,6 +876,135 @@ const KINDS = {
     },
   },
 };
+
+// --- tensorlab -----------------------------------------------------------------
+function buildTensorLab(it) {
+  const d = it.data;
+  it.live.innerHTML = `
+    <div class="annot__presets" role="group" aria-label="Point to inspect">
+      ${TL_CLASSES.map((k) => `<button type="button" data-p="${k}" data-cls="${k}">${CLASS_TEXT[k]}</button>`).join('')}
+    </div>
+    <div class="annot__lab">
+      <label><span>window <output data-o="half"></output></span><input type="range" data-i="half" min="2" max="15" step="1" value="${d.half}"></label>
+      <label><span>threshold τ <output data-o="tau"></output></span><input type="range" data-i="tau" min="0.01" max="1" step="0.01" value="${d.tau}"></label>
+    </div>
+    <p class="annot__badge" data-r="badge"></p>
+    <table class="annot__table" data-r="table"></table>
+    <p class="annot__readout">ellipse = gradient spread (∝√λ) · try a bigger window or τ</p>`;
+  it.live.querySelectorAll('input[type=range]').forEach((inp) => {
+    inp.addEventListener('input', () => { d[inp.dataset.i] = +inp.value; computeTensorLab(it); });
+    inp.addEventListener('change', () => inp.blur()); // give Space / arrows back to the story
+  });
+  it.live.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => { pickTensorLab(it, b.dataset.p); b.blur(); }));
+  it.live.addEventListener('keydown', (e) => e.stopPropagation());
+}
+
+function pickTensorLab(it, cls) {
+  const e = it.data.examples?.[cls];
+  if (e) it.data.auto = { x: e.x, y: e.y };
+  it.data.picked = cls;
+  computeTensorLab(it);
+}
+
+function computeTensorLab(it) {
+  const d = it.data, a = d.auto;
+  if (!d.an || !a) return;
+  const root = it.live;
+  root.querySelector('[data-o="half"]').textContent = `${2 * d.half + 1}×${2 * d.half + 1}`;
+  root.querySelector('[data-o="tau"]').textContent = d.tau.toFixed(2);
+  root.querySelectorAll('[data-p]').forEach((b) => b.classList.toggle('is-on', b.dataset.p === d.picked));
+  const t = d.t = tensorAt(d.an, a.x, a.y, d.half);
+  const cls = d.cls = classify(t.l1, t.l2, d.tau);
+  const badge = root.querySelector('[data-r="badge"]');
+  badge.dataset.cls = cls;
+  badge.textContent = CLASS_TEXT[cls];
+  root.querySelector('[data-r="table"]').innerHTML = `
+    <tr><th>${inline('$\\lambda_1$')}</th><td>${fmt(t.l1)}</td></tr>
+    <tr><th>${inline('$\\lambda_2$')}</th><td>${fmt(t.l2)}</td></tr>
+    <tr><th>Shi–Tomasi ${inline('$\\lambda_{\\min}$')}</th><td>${fmt(t.l2)} ${t.l2 >= d.tau ? '≥' : '<'} τ = ${d.tau.toFixed(2)}</td></tr>
+    <tr><th>Harris ${inline('$R$')}</th><td>${harrisText(harris(t.a, t.b, t.c, 0.05))}</td></tr>`;
+  it.stage.redraw();
+}
+
+// --- pyramidlab ----------------------------------------------------------------
+const LAB_MAXGAP = 8, LAB_HALF = 7;
+
+function buildLab(it) {
+  const lab = it.data.lab = { gap: 3, levels: 3 };
+  it.live.innerHTML = `
+    <div class="annot__lab">
+      <label><span>frame gap <output data-o="gap"></output></span><input type="range" data-i="gap" min="1" max="${LAB_MAXGAP}" step="1" value="${lab.gap}"></label>
+      <label><span>pyramid levels <output data-o="levels"></output></span><input type="range" data-i="levels" min="1" max="4" step="1" value="${lab.levels}"></label>
+    </div>
+    <div data-r="levels"></div>
+    <table class="annot__table" data-r="result"></table>
+    <p class="annot__readout" data-r="meta">Loading frames…</p>`;
+  const root = it.live;
+  root.querySelectorAll('input[type=range]').forEach((inp) => {
+    inp.addEventListener('input', () => { lab[inp.dataset.i] = +inp.value; computeLab(it); });
+    inp.addEventListener('change', () => inp.blur()); // give Space / arrows back to the story
+  });
+  root.addEventListener('keydown', (e) => e.stopPropagation());
+}
+
+async function loadLab(it, a, F) {
+  const d = it.data, tr = it.stage.tracks, hist = tr.byId.get(a.id);
+  d.labFor = a.id; d.labBusy = true;
+  let maxGap = 0;
+  while (maxGap < LAB_MAXGAP && hist?.get(F - maxGap - 1)) maxGap++;
+  const meta = it.live.querySelector('[data-r="meta"]');
+  if (maxGap < 1) { meta.textContent = 'This point has no earlier frames to compare with.'; d.labBusy = false; return; }
+  const frames = Array.from({ length: maxGap + 1 }, (_, k) => F - maxGap + k);
+  const imgs = await it.stage.grabFramesAt(frames);
+  d.labBusy = false;
+  if (imgs.some((x) => !x)) { meta.textContent = 'Video frames not available yet.'; return; }
+  const { width: w, height: h } = imgs[0];
+  Object.assign(d, { F, id: a.id, maxGap, pyr: new Map(frames.map((f, k) => [f, buildPyramid(toGray(imgs[k]), w, h, 4)])) });
+  // Start on the story: the smallest gap where one level fails but the pyramid still gets it right.
+  const lab = d.lab;
+  lab.gap = [...Array(maxGap).keys()].map((k) => k + 1).find((g) => labSolve(it, g, 1).err > 1 && labSolve(it, g, 3).err < 1) ?? Math.min(3, maxGap);
+  lab.levels = 3;
+  it.live.querySelector('[data-i="gap"]').max = String(maxGap);
+  it.live.querySelector('[data-i="gap"]').value = String(lab.gap);
+  it.live.querySelector('[data-i="levels"]').value = String(lab.levels);
+  computeLab(it);
+}
+
+function labSolve(it, gap, levels) {
+  const { F, id, pyr } = it.data, h = it.stage.tracks.byId.get(id);
+  const old = h.get(F - gap), cur = h.get(F), x0 = Math.round(old.x), y0 = Math.round(old.y);
+  const truth = [cur.x - x0, cur.y - y0];
+  const r = lkPyramid(pyr.get(F - gap), pyr.get(F), x0, y0, LAB_HALF, levels);
+  return { truth, r, err: Math.hypot(r.p[0] - truth[0], r.p[1] - truth[1]), old };
+}
+
+function computeLab(it) {
+  const d = it.data;
+  if (!d.pyr) return;
+  const { gap, levels } = d.lab, root = it.live;
+  root.querySelector('[data-o="gap"]').textContent = String(gap);
+  root.querySelector('[data-o="levels"]').textContent = levels === 1 ? '1 (none)' : String(levels);
+  const one = labSolve(it, gap, 1), many = labSolve(it, gap, levels);
+  const P = (p) => `(${p[0].toFixed(1)}, ${p[1].toFixed(1)})`;
+  const verdict = (s) => `${P(s.r.p)} ${s.err < 1 ? '<span style="color:#34d399">✓ correct</span>' : `<span style="color:#f87171">✗ off by ${s.err.toFixed(1)} px</span>`}`;
+  root.querySelector('[data-r="result"]').innerHTML = `
+    <tr><th>reference</th><td>${P(one.truth)} · ${Math.hypot(...one.truth).toFixed(1)} px</td></tr>
+    <tr><th>one level</th><td>${verdict(one)}</td></tr>
+    <tr><th>pyramid</th><td>${levels === 1 ? 'raise levels above 1' : verdict(many)}</td></tr>`;
+  root.querySelector('[data-r="meta"]').textContent = `frames ${d.F - gap} → ${d.F} · each level halves the shift to find`;
+  const S = 20, log = many.r.log.slice().sort((x, y) => x.level - y.level);
+  root.querySelector('[data-r="levels"]').innerHTML = insetHtml(log.map((l) => [`l${l.level}`, `level ${l.level}: ${Math.hypot(...l.p).toFixed(1)} px`]));
+  const pyr = d.pyr.get(d.F - gap);
+  for (const { level, p } of log) {
+    const s = 2 ** level, L = pyr[level], cv = insetCanvas(it, `l${level}`);
+    paintPatch(cv, samplePatch(L.gray, L.w, L.h, many.old.x / s, many.old.y / s, S), 2 * S + 1, 'gray');
+    const c = cv.getContext('2d'), k = cv.width / (2 * S + 1), m = cv.width / 2;
+    c.strokeStyle = '#22d3ee'; c.lineWidth = 2.5;
+    arrow(c, m, m, m + p[0] * k, m + p[1] * k, 6);
+    c.lineWidth = 1; c.strokeRect(m - LAB_HALF * k, m - LAB_HALF * k, (2 * LAB_HALF + 1) * k, (2 * LAB_HALF + 1) * k);
+  }
+  it.stage.redraw();
+}
 
 /** Template, warped patch, error before/after and the iterate path for `lk` (inset: true). */
 function lkInset(it, gT, gI, x0, y0, half, r) {

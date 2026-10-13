@@ -1,4 +1,4 @@
-// Lab Notebook sections for chapter 2 ("wall") (also feeds the Full article via js/data/article.js).
+// Lab Notebook sections for chapter 2 ("wall").
 // Each section: { title, level: 'story' | 'math', body }.
 const R = String.raw;
 

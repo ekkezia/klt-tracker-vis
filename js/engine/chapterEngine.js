@@ -105,10 +105,16 @@ export function createPlayer({ steps, state, stage, dialogue, annotations, voice
     if (travel && step.to > step.from) await stage.playSegment(step.from, step.to);
     else await stage.hold(step.to);
     if (my !== token) return;
+    // Hold the overlay back until the character has finished talking (or the reader skips ahead).
+    if (step.type === 'line') {
+      await dialogue.whenSpoken(speaking);
+      if (my !== token) return;
+    }
     // A line's `math` note is shown on the footage as a floating card.
     const math = step.line?.math ? [{ kind: 'card', title: 'The math', body: step.line.math }] : [];
     const focus = [].concat(step.line?.focus ?? []);
     annotations.show(focus.length || math.length ? [...focus, ...math] : null);
+    dialogue.markReady();
   }
 
   return {

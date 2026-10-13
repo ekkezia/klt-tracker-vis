@@ -1,141 +1,115 @@
-// Lab Notebook drawer with two tabs:
-//   "This chapter"  the current chapter's sections (story + math) and its widget
-//   "Full article"  every chapter's notes as one linear academic write-up
-//                   (js/data/article.js), with numbered sections and contents
+// Lab Notebook drawer: every chapter's notes in one scroll. Each chapter has a
+// sticky header, so the reader always knows which chapter they are in. Opening
+// the notebook scrolls to the chapter the story is at (or to the section a
+// dialogue line points at). Chapter playgrounds mount lazily, as they scroll in.
 
-import { render, inline } from '../lib/markup.js';
+import { render } from '../lib/markup.js';
 import { getWidget } from '../widgets/registry.js';
-import { article } from '../data/article.js';
 
-/**
- * Inside the Full article, story chapter k is article section k+1. Rewrite
- * "Chapter 2", "Ch 3", "Ch 3–4" as section references.
- */
-export function chaptersToSections(md) {
-  return md
-    .replace(/\bCh(?:apters?)? ?(\d)\s*[–-]\s*(\d)\b/g, (_, a, b) => `Sections ${+a + 1}–${+b + 1}`)
-    .replace(/\bChapter (\d)\b/g, (_, a) => `Section ${+a + 1}`)
-    .replace(/\bCh (\d)\b/g, (_, a) => `Section ${+a + 1}`)
-    .replace(/\bthe next chapter\b/g, 'the next section');
-}
+/** "i.j" for each notebook section: chapter index . position in the chapter, keyed `${chapterId}|${title}`. */
+export const sectionNumbers = (chapters) => new Map(chapters.flatMap((c) =>
+  c.notebook.map((s, j) => [`${c.id}|${s.title}`, `${c.index}.${j + 1}`])));
 
-export function createNotebook(root, state, api, { chapters, references, onGoToChapter, onGoToRef }) {
+const attr = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+
+export function createNotebook(root, state, api, { chapters, onGoToChapter, onGoToRef }) {
   const title = root.querySelector('[data-nb="title"]');
   const kicker = root.querySelector('[data-nb="kicker"]');
   const body = root.querySelector('[data-nb="body"]');
-  const widgetHost = root.querySelector('[data-nb="widget"]');
-  const articleHost = root.querySelector('[data-nb="article"]');
+  const nav = root.querySelector('[data-nb="nav"]');
   const scroller = root.querySelector('.notebook__scroll');
   const closeBtn = root.querySelector('[data-nb="close"]');
-  const tabs = [...root.querySelectorAll('[data-tab]')];
-  let renderedFor = null;
-  let unmount = null;
+  let built = false;
   let returnFocus = null;
-  let tab = 'chapter';
-  let articleBuilt = false;
+  const mounted = new Set();
 
-  function fill(chapter) {
-    if (renderedFor === chapter.id) return;
-    renderedFor = chapter.id;
-    if (tab === 'chapter') setHeader(chapter);
-    body.innerHTML = chapter.notebook.map((sec) => `
-      <section class="nb-section ${sec.level === 'math' ? 'is-math' : ''}" data-sec="${sec.title}">
-        <h3>${sec.title}${sec.level === 'math' ? ' <span class="tag">math</span>' : ''}</h3>
-        ${render(sec.body)}
+  const chapterEl = (id) => body.querySelector(`.nb-chapter[data-ch="${id}"]`);
+
+  function build() {
+    if (built) return;
+    built = true;
+    kicker.textContent = 'Lab Notebook';
+    title.textContent = 'Notes for every chapter';
+    nav.innerHTML = chapters.map((c) => `<button type="button" data-go="${c.id}" title="${attr(c.title)}"><b>${c.index}</b> ${c.short}</button>`).join('');
+    body.innerHTML = chapters.map((c) => `
+      <section class="nb-chapter" data-ch="${c.id}">
+        <header class="nb-chapter__head">
+          <div>
+            <p class="kicker">Chapter ${c.index} · ${c.place}</p>
+            <h3>${c.title}</h3>
+          </div>
+          <span class="nb-here" hidden>● you are here</span>
+          <button type="button" class="nb-play" data-play="${c.index}">▶ In the story</button>
+        </header>
+        <div class="notebook__widget" data-widgets></div>
+        ${c.notebook.map((sec, j) => `
+          <section class="nb-section ${sec.level === 'math' ? 'is-math' : ''}" data-sec="${attr(sec.title)}">
+            <h4><span class="nb-num">${c.index}.${j + 1}</span> ${sec.title}${sec.level === 'math' ? ' <span class="tag">math</span>' : ''}</h4>
+            ${render(sec.body)}
+            <button type="button" class="nb-see" data-see="${attr(`${c.id}|${sec.title}`)}" data-play="${c.index}">▶ See this in the story</button>
+          </section>`).join('')}
       </section>`).join('');
-    unmount?.();
-    widgetHost.innerHTML = '';
-    // A chapter may have several playgrounds (`widget` can be an array).
-    const offs = [].concat(chapter.widget ?? []).map((id) => {
-      const slot = widgetHost.appendChild(document.createElement('div'));
-      slot.className = 'notebook__playground';
-      return getWidget(id)(slot, { ...api, chapter }) ?? null;
-    });
-    unmount = () => offs.forEach((off) => off?.());
+    markHere();
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+        if (e.isIntersecting) { mountWidgets(e.target.closest('.nb-chapter').dataset.ch); io.unobserve(e.target); }
+      }), { root: scroller, rootMargin: '300px' });
+      body.querySelectorAll('[data-widgets]').forEach((el) => io.observe(el));
+    } else chapters.forEach((c) => mountWidgets(c.id));
   }
 
-  function setHeader(chapter) {
-    if (tab === 'article') {
-      kicker.textContent = 'Lab Notebook · Full article';
-      title.textContent = article.title;
-    } else {
-      kicker.textContent = `Lab Notebook · Chapter ${chapter.index} · ${chapter.place}`;
-      title.textContent = chapter.title;
+  /** A chapter may have several playgrounds (`widget` can be an array). */
+  function mountWidgets(id) {
+    if (mounted.has(id)) return;
+    mounted.add(id);
+    const chapter = chapters.find((c) => c.id === id);
+    const host = chapterEl(id).querySelector('[data-widgets]');
+    for (const wid of [].concat(chapter.widget ?? [])) {
+      const slot = host.appendChild(document.createElement('div'));
+      slot.className = 'notebook__playground';
+      try { getWidget(wid)(slot, { ...api, chapter }); } catch (err) { console.warn(`widget ${wid}`, err); }
     }
   }
 
-  // --- the linear article --------------------------------------------------------
-  function buildArticle() {
-    if (articleBuilt) return;
-    articleBuilt = true;
-    const byId = Object.fromEntries(chapters.map((c) => [c.id, c]));
-    const toc = article.sections.map((sec, i) => `
-      <li><a href="#art-${i + 1}" data-jump="art-${i + 1}">${i + 1}. ${sec.heading}</a></li>`).join('');
-    const sections = article.sections.map((sec, i) => {
-      const parts = sec.parts.map(([id, t], j) => {
-        const ch = byId[id];
-        const n = ch?.notebook.find((x) => x.title === t);
-        if (!n) return '';
-        const outline = /^outline:|\(outline\)|\(placeholder\)/i.test(t);
-        const clean = t.replace(/^Outline:\s*/i, '').replace(/\s*\((outline|placeholder)\)$/i, '');
-        return `
-          <section class="art-sub" id="art-${i + 1}-${j + 1}">
-            <h4><span class="art-num">${i + 1}.${j + 1}</span> ${clean}${outline ? ' <span class="tag tag--muted">draft</span>' : ''}</h4>
-            ${render(chaptersToSections(n.body))}
-            <button type="button" class="art-see" data-chapter="${ch.index}" data-ref="${ch.id}|${t}">See it in Chapter ${ch.index}: ${ch.place} →</button>
-          </section>`;
-      }).join('');
-      return `<section class="art-sec" id="art-${i + 1}"><h3><span class="art-num">${i + 1}</span> ${sec.heading}</h3>${parts}</section>`;
-    }).join('');
-    const refs = references.map((r) => `<li>${r.url ? `<a href="${r.url}" target="_blank" rel="noopener">${r.label}</a>` : `<cite>${r.label}</cite>`}. ${r.source}.</li>`).join('');
-    articleHost.innerHTML = `
-      <header class="art-head">
-        <p class="art-subtitle">${article.subtitle}</p>
-        <p class="art-abstract"><strong>Abstract.</strong> ${inline(article.abstract)}</p>
-        <nav class="art-toc" aria-label="Contents"><p class="kicker">Contents</p><ol>${toc}
-          <li><a href="#art-refs" data-jump="art-refs">References</a></li></ol></nav>
-      </header>
-      ${sections}
-      <section class="art-sec" id="art-refs"><h3>References</h3><ol class="refs">${refs}</ol></section>`;
+  function markHere() {
+    const cur = state.get().chapter?.id;
+    body.querySelectorAll('.nb-chapter').forEach((el) => {
+      el.classList.toggle('is-here', el.dataset.ch === cur);
+      el.querySelector('.nb-here').hidden = el.dataset.ch !== cur;
+    });
   }
 
-  articleHost.addEventListener('click', (e) => {
-    const j = e.target.closest('[data-jump]');
-    if (j) { e.preventDefault(); articleHost.querySelector(`#${j.dataset.jump}`)?.scrollIntoView({ block: 'start' }); return; }
-    const see = e.target.closest('[data-chapter]');
-    if (see) { close(); if (!onGoToRef?.(see.dataset.ref)) onGoToChapter(+see.dataset.chapter); }
-  });
-
-  function setTab(next) {
-    tab = next;
-    tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === tab)));
-    root.classList.toggle('notebook--article', tab === 'article');
-    body.hidden = widgetHost.hidden = tab !== 'chapter';
-    articleHost.hidden = tab !== 'article';
-    if (tab === 'article') buildArticle();
-    const ch = state.get().chapter;
-    if (ch) setHeader(ch);
-    scroller.scrollTop = 0;
+  // Which chapter is at the top of the scroll: highlight it in the chapter strip.
+  let spy = 0;
+  function spyNow() {
+    spy = 0;
+    const top = scroller.getBoundingClientRect().top + 90;
+    let at = chapters[0].id;
+    for (const el of body.querySelectorAll('.nb-chapter')) if (el.getBoundingClientRect().top <= top) at = el.dataset.ch;
+    nav.querySelectorAll('[data-go]').forEach((b) => {
+      b.classList.toggle('is-on', b.dataset.go === at);
+      if (b.dataset.go === at) b.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    });
   }
-  tabs.forEach((t) => t.addEventListener('click', () => setTab(t.dataset.tab)));
-  root.querySelector('[role="tablist"]').addEventListener('keydown', (e) => {
-    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    e.preventDefault();
-    const i = tabs.findIndex((t) => t.dataset.tab === tab);
-    const nxt = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
-    setTab(nxt.dataset.tab); nxt.focus();
-  });
+  scroller.addEventListener('scroll', () => { if (!spy) spy = requestAnimationFrame(spyNow); });
 
-  function open(which = null) {
-    const s = state.get();
-    if (!s.chapter) return;
+  function scrollToChapter(id) {
+    chapterEl(id)?.scrollIntoView({ block: 'start' });
+    spyNow();
+  }
+
+  function open(target = null) {
     returnFocus = document.activeElement;
-    fill(s.chapter);
-    if (which) setTab(which); else setHeader(s.chapter);
+    build();
+    markHere();
     root.hidden = false;
     document.body.classList.add('notebook-open');
     state.set({ notebookOpen: true });
     closeBtn.focus();
+    const here = state.get().chapter?.id ?? chapters[0].id;
+    mountWidgets(here); // first, so the chapter's playground is in place before we scroll to it
+    if (!target) scrollToChapter(here);
+    return true;
   }
 
   function close() {
@@ -149,27 +123,29 @@ export function createNotebook(root, state, api, { chapters, references, onGoToC
   closeBtn.addEventListener('click', close);
   root.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } });
 
-  // Keep contents in sync if the reader moves to another chapter while open.
-  state.subscribe((s, changed) => {
-    if (changed.includes('chapter') && !root.hidden) fill(s.chapter);
+  root.addEventListener('click', (e) => {
+    const go = e.target.closest('[data-go]');
+    if (go) { scrollToChapter(go.dataset.go); return; }
+    const see = e.target.closest('[data-see]');
+    if (see) { close(); if (!onGoToRef?.(see.dataset.see)) onGoToChapter(+see.dataset.play); return; }
+    const play = e.target.closest('.nb-play');
+    if (play) { close(); onGoToChapter(+play.dataset.play); }
   });
 
-  /** Open "This chapter" scrolled to the section titled `title`, briefly highlighted. */
-  function openSection(title) {
-    open('chapter');
-    const sec = [...body.querySelectorAll('[data-sec]')].find((el) => el.dataset.sec === title);
-    if (!sec) return;
+  state.subscribe((s, changed) => { if (changed.includes('chapter') && built) markHere(); });
+
+  /** Open scrolled to the section titled `secTitle` (default: in the chapter the story is at), briefly highlighted. */
+  function openSection(secTitle, chapterId = state.get().chapter?.id) {
+    open(secTitle);
+    mountWidgets(chapterId);
+    const sec = [...(chapterEl(chapterId) ?? body).querySelectorAll('[data-sec]')].find((el) => el.dataset.sec === secTitle);
+    if (!sec) { scrollToChapter(chapterId); return; }
     sec.scrollIntoView({ block: 'start' });
     sec.classList.remove('is-target');
     void sec.offsetWidth;
     sec.classList.add('is-target');
+    spyNow();
   }
 
-  /** Open the Full article scrolled to subsection "i.j". */
-  function openAt(num) {
-    open('article');
-    articleHost.querySelector(`#art-${num.replace('.', '-')}`)?.scrollIntoView({ block: 'start' });
-  }
-
-  return { open, openAt, openSection, close, toggle: () => (root.hidden ? open() : close()) };
+  return { open, openSection, close, toggle: () => (root.hidden ? open() : close()) };
 }

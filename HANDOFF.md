@@ -21,7 +21,8 @@ chapters.js ─► buildSteps() ─► steps[]  (intro = chapter brief · one pe
 - **Footage = a journey.** The footage only moves when the reader advances. `buildSteps` gives every step a consecutive stretch `[from, to]` of its chapter's frames. A line's `hold` frame is where the journey stops for that line, and other steps are spread evenly between stops. **Next** plays the stretch once at native speed and pauses on `to` (`stage.playSegment`). Back, timeline and chapter jumps show `to` directly. Annotations appear once the footage has stopped. Nothing loops except the backdrop behind the start screen.
 - **Stand-ins** (`standIns` in `chapters.js`): `{ lucas: 'kanade' }` makes Dr. Kanade speak Dr. Lucas's lines (portrait, call card, voice). Delete the entry to restore Lucas, and revert the five lines of Wren's text that now say "Dr. Kanade".
 - **Concept-first structure.** Ch 0 is three short lines and one question ("how did each point move since the last frame?"). Each later chapter brings in one problem just in time for its concept. The second half is about the tracker itself: Ch 5 is the full KLT loop (detect → track → verify → replenish). Applications are one short tour in Ch 6; limits and what came next are in Ch 7.
-- **Lab Notebook tabs** (`js/ui/notebook.js`): "This chapter" (sections + widget) and "Full article", a linear academic write-up (abstract, contents, numbered sections, references) assembled from the same notebook sections by `js/data/article.js`. Each subsection links back to its chapter in the story. Add or reorder article sections by editing `article.js` only; titles must match notebook section titles.
+- **Lab Notebook** (`js/ui/notebook.js`): one scroll with every chapter, each under a sticky chapter header (plus a chapter strip to jump around). Opening it scrolls to the chapter the story is at, or to the section a line's `ref` names; sections are numbered `chapter.section` (the §i.j shown in the headline and the "Lab notes" button) and link back to the story ("See this in the story"). Playgrounds mount lazily as a chapter scrolls in. The old Full-article tab and `js/data/article.js` are gone.
+- **"Try it" cards** (`pyramidlab`, `tensorlab` in `js/annotations/annotations.js`): interactive on-footage playgrounds; a focus spec's `widget` adds a maximise button that opens the chapter's full playground over the footage.
 - **Phone calls** (`js/ui/sfx.js`, Web Audio, no files): on a line with `event.call` the call card slides in reading "Calling…", and a ring loops (after the line is spoken) until the reader presses Next; then a pickup chirp plays and the card reads "On call". The speaker icon (V) controls voice and effects.
 - **HUD panel + flight log** (`js/ui/flightLog.js`): the panel header shows chapter, location, current topic, and icon readouts (frame, tracks, mean forward–backward error). The flight log shows only the **current** chapter's **brief** (no history of earlier ones) (`chapter.failure`: the problem as a question plus one sentence on what the chapter establishes). It expands on a chapter's opening step and collapses (animated) when a character speaks; L or the toggle reopens it. There is no title card and no separate system/log dialogue line.
 - **Script rule (2026-10-13):** the doctors explain *ideas* in plain words, one idea per line, mostly one doctor per chapter, and **no equations in speech**. Each line's equation goes in `line.math` (shown on the footage as a "The math" card) or in its `focus` overlay; the derivation lives in the Lab Notebook section named by `line.ref`, which the dialogue box links to ("Lab notes §i.j", also the N key). 34 lines / ~840 words in total.
@@ -108,7 +109,7 @@ api = {
 }
 ```
 
-**Chapter order (2026-10-13):** pyramids (Ch 3) come before Lucas–Kanade (Ch 4), at the user's request; the Full article follows the same order (chapter k = section k+1). To keep the footage running forward, `chapters.js` re-splits the recording (`SPRINT`, `ALONG_FENCE`, `LK_FRAME` = 1725) instead of using route chapters 3–4; the Straus Square walk (≈1050–1379) is skipped. `lkTranslation` now stops when λmin per pixel < 1e-4 (OpenCV's minEigThreshold), so flat or noise-only windows fail instead of jumping.
+**Chapter order (2026-10-13):** pyramids (Ch 3) come before Lucas–Kanade (Ch 4), at the user's request. To keep the footage running forward, `chapters.js` re-splits the recording (`SPRINT`, `ALONG_FENCE`, `LK_FRAME` = 1725) instead of using route chapters 3–4; the Straus Square walk (≈1050–1379) is skipped. `lkTranslation` now stops when λmin per pixel < 1e-4 (OpenCV's minEigThreshold), so flat or noise-only windows fail instead of jumping.
 
 Register in `js/widgets/registry.js`. Every chapter except 7 has at least one **playground** at the top of its Lab Notebook tab (shared helpers in `js/widgets/pg.js`: `shell`, `slider`, `check`, `controls`, `crisp`, `drawGray`):
 
@@ -207,7 +208,7 @@ Prefer `{ track: 'auto' }` and `{ auto: … }` anchors: they keep working when f
 | 6 | docking | The Seward Park dock | outline | 5 lines | 4 sections (outlines) | `servo` |
 | 7 | debrief | Docked in Seward Park | outline | 2 lines | 4 sections incl. State of the art | none |
 
-Outline chapters get a "draft" tag in the flight log; outline notebook sections get a "draft" tag in the Full article.
+Outline chapters get a "draft" tag in the flight log; 
 
 ## 5. Math: verified vs. to verify
 

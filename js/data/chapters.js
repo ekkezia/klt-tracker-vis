@@ -12,7 +12,7 @@
 //   scene, sceneAlt,
 //   status: 'written' | 'outline',
 //   clip: { id, start, end },              // inclusive frame range in that clip
-//   failure: { title, text },              // the chapter's problem (flight-log brief)
+//   failure: { title, text },              // the chapter's problem (chapter brief; no longer shown in the UI)
 //   dialogue: [{ speaker, text, math?, event?, hold?, focus?, say?, topic?, ref? }],
 //      event:  { call: speakerId | [speakerId] } | { hangup: true }
 //      math:   optional derivation, shown on the footage as a "The math" card
@@ -194,11 +194,7 @@ Whole window: $u^\star = +1$ ✓` },
         math: R`$H = \sum_{\mathcal{W}} \nabla I\,\nabla I^\top = \sum_{\mathcal{W}} \begin{bmatrix} I_x^2 & I_x I_y \\ I_x I_y & I_y^2 \end{bmatrix}$, eigenvalues $\lambda_1 \ge \lambda_2$.`,
         speaker: 'tomasi', text: 'To test a window, gather all its gradients into one small matrix, the **structure tensor**. Its two eigenvalues say how strongly brightness changes in the strongest and in the weakest direction.' },
       { topic: 'Flat, edge, corner', ref: 'Flat, edge, corner', hold: K.truckStop + 24,
-        focus: [
-          { kind: 'tensor', compact: true, at: { auto: 'flat', region: TRUCK }, title: 'Both small' },
-          { kind: 'tensor', compact: true, at: { auto: 'edge', region: TRUCK }, title: 'One large, one small' },
-          { kind: 'tensor', compact: true, at: { auto: 'corner', region: TRUCK }, title: 'Both large' },
-        ],
+        focus: { kind: 'tensorlab', widget: 'structure-tensor', at: { auto: 'corner', region: TRUCK }, title: 'Try it: flat, edge or corner?', body: 'Pick a kind of point, then change the **window** or the **threshold** and watch the two eigenvalues.' },
         math: R`Shi–Tomasi: keep if $\lambda_{\min} > \tau$. Harris: $R = \det H - k\,(\operatorname{tr} H)^2$.`,
         speaker: 'tomasi', text: 'Both small: a flat patch. One large: an edge. Both large: a corner, the only kind you can follow in every direction. So keep a window only when its smaller eigenvalue is large. The tracker will rely on that same matrix later.', event: { hangup: true } },
       { topic: 'Detecting good features', ref: 'Harris vs. Shi–Tomasi', hold: K.truckStop + 24,
@@ -228,7 +224,7 @@ Whole window: $u^\star = +1$ ✓` },
     dialogue: [
       { topic: 'Motion too large to linearise', ref: 'Image pyramids: coarse-to-fine tracking', speaker: 'wren', text: 'I\'m crossing Canal Street fast, and I\'m losing tracks. I\'m calling Dr. Kanade.', event: { call: 'kanade' } },
       { topic: 'Image pyramids', ref: 'Image pyramids: coarse-to-fine tracking', hold: K.sprintStart + 26,
-        focus: { kind: 'pyramid', at: { track: 'fastest' }, title: 'One motion, four levels', body: R`The same feature at pyramid levels 0 to 3. Each level halves the displacement.` },
+        focus: { kind: 'pyramidlab', widget: ['pyramid-synth', 'pyramid'], at: { track: 'fastest' }, title: 'Try it: how far can one step reach?', body: R`Drag **frame gap** to make this point move farther, and **pyramid levels** to see how coarser levels shrink the shift.` },
         math: R`At level $\ell$ the shift is $\mathbf{d}/2^{\ell}$. Solve at the top, then start the next level from $2\mathbf{d}^{\ell+1}$ and refine.`,
         speaker: 'kanade', text: 'Points now jump too far for one linear step. So shrink the image by half a few times: an eight-pixel jump becomes one pixel at the coarsest level. Solve there first, then refine level by level.', event: { hangup: true } },
       { speaker: 'wren', text: 'The pyramid keeps up, but some of my tracks are now wrong. I\'m calling Dr. Tomasi.', event: { call: 'tomasi' } },

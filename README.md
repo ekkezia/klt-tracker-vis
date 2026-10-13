@@ -22,7 +22,6 @@ python3 tools/serve.py          # http://localhost:8000
 | Timeline (bottom) | drag or click the rail to scrub (tooltip previews the topic); scroll/trackpad over it steps; click a checkpoint to jump to that chapter; when focused: `←`/`→` step, `PageUp`/`PageDown` chapter, `Home`/`End` |
 | `0`–`7` | jump to chapter |
 | `N` | Lab Notebook, opened at the section for the current line (also the "Lab notes §" button) |
-| `L` | open / close the flight log |
 | `V` | sound (voice + phone effects) on/off |
 | `G` | greyscale footage: auto (grey while an overlay points at the footage) → always → off |
 | `Esc` | close notebook |
@@ -87,12 +86,12 @@ Browser tests: open `http://localhost:8000/?debug`, which exposes `window.__klt 
 ## File map
 
 ```
-index.html                     full-screen stage, HUD panel + flight log, dialogue box, start screen, notebook
+index.html                     full-screen stage, HUD panel, dialogue box, start screen, notebook
 css/style.css                  layout + theme (dialogue bubble, glass cards, notebook paper style)
 js/main.js                     bootstrap, controls, keyboard
 js/config.js                   STAGE size (one constant), overlay + HUD settings
 js/data/chapters.js            ALL content: characters (+ voices), clips, chapters 0–7, references
-js/data/notebook/<n>-<name>.js  Lab Notebook + Full article text, one file per chapter
+js/data/notebook/<n>-<name>.js  Lab Notebook text, one file per chapter
 js/engine/state.js             tiny observable store
 js/engine/chapterEngine.js     chapters → steps; step player (footage, dialogue, annotations, voice)
 js/stage/stage.js              <video> (cover) + overlay canvas; loop / hold playback; frame grabs
@@ -106,7 +105,6 @@ js/ui/voice.js                 voice-over playback from assets/voice/manifest.js
 js/ui/phoneCall.js             "on call" overlay
 js/ui/hud.js                   frame / tracked / mean forward-backward error
 js/ui/notebook.js              Lab Notebook drawer (sections + widget)
-js/ui/flightLog.js             flight log in the HUD panel (expands on log entries, collapses when someone talks)
 js/ui/sfx.js                   synthesized phone ring / pickup sounds
 js/widgets/registry.js         playground id → mount(container, api)
 js/widgets/pg.js               shared playground helpers (shell, sliders, canvases)
