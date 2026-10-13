@@ -90,6 +90,18 @@ state.subscribe((s, changed) => {
     void headline.offsetWidth; // restart the entrance animation
     headline.classList.add('is-in');
   }
+  // "Lab notes §i.j" in the dialogue box: the section that explains this line in depth.
+  if (changed.includes('step') && s.step) {
+    const more = $('#dialogue-more');
+    const ref = s.step.type === 'line' ? s.step.ref : null;
+    const num = ref && articleNumbers.get(`${s.step.chapter.id}|${ref}`);
+    more.hidden = !ref;
+    if (ref) {
+      more.dataset.ref = ref;
+      more.innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M6 5h4M6 8h4M6 11h2"/></svg> Lab notes${num ? ` §${num}` : ''} <kbd>N</kbd>`;
+      more.title = `Read more: ${ref.replace(/\s*\((outline|placeholder)\)$/, '')}`;
+    }
+  }
   if (changed.includes('chapter') && s.chapter && s.chapter !== lastChapter) {
     lastChapter = s.chapter;
     $('#stage-place').textContent = `Chapter ${s.chapter.index} · ${s.chapter.place}`;
@@ -119,6 +131,8 @@ stageEl.addEventListener('click', (e) => {
 });
 document.addEventListener('click', (e) => {
   if (e.target.closest('[data-open-notebook]')) notebook.open();
+  const more = e.target.closest('#dialogue-more');
+  if (more) notebook.openSection(more.dataset.ref);
   const art = e.target.closest('[data-art]');
   if (art) notebook.openAt(art.dataset.art);
   if (e.target.closest('[data-restart]')) player.start(0);
@@ -142,7 +156,11 @@ document.addEventListener('keydown', (e) => {
       player.next(); break;
     case 'ArrowRight': case 'j': player.next(); break;
     case 'ArrowLeft': case 'k': player.prev(); break;
-    case 'n': case 'N': notebook.toggle(); break;
+    case 'n': case 'N': { // open at the section the current line is about
+      const ref = state.get().step?.ref;
+      if (state.get().notebookOpen || !ref) notebook.toggle(); else notebook.openSection(ref);
+      break;
+    }
     case 'l': case 'L': flightLog.toggle(); break;
     case 'v': case 'V': voice.toggle(); break;
     case 'g': case 'G': greyscale.cycle(); break;

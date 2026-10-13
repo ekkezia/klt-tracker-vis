@@ -13,7 +13,7 @@
 //           'pyramid'    inset: the anchored track's motion at pyramid levels 0..3
 //           'patches'    inset: patches around the anchored track; maps from
 //                        'prev' | 'next' | 'Ix' | 'Iy' | 'It'
-//         `lk` with inset: true adds template / warped / error images and the
+//         `lk` with start: [dx, dy] (or startOffset: [dx, dy] from OpenCV's answer), inset: true adds template / warped / error images and the
 //         iterate path, magnified. Anchored kinds dim every other track (focus).
 //   at    anchor spec (resolved every frame, in the footage's pixel grid):
 //           { point: [x, y] }               fixed position
@@ -523,8 +523,19 @@ const KINDS = {
       const seen = pts.filter((p) => visible(p) && tr.byId.get(p.id).get(F - lag));
       const close = seen.filter((p) => Math.hypot(p.x - near[0], p.y - near[1]) < 220);
       const cand = close.length ? close : seen;
+      const [gT, gI] = await grays(stage, [F - lag, F]);
+      if (!gT || !gI) return;
+      const half = it.spec.win ?? 7;
+      // Among the longest-lived nearby corners, show the one Lucas–Kanade fits best
+      // (converges in the fewest steps, then smallest residual): a clean, textbook example.
+      const fit = (p) => {
+        const o = tr.byId.get(p.id).get(F - lag);
+        const t = lkTranslation(gT.gray, gI.gray, gT.w, gT.h, Math.round(o.x), Math.round(o.y), half, { maxIter: 15, eps: 0.01 });
+        return t.converged ? t.iterates.length + (t.iterates.at(-2)?.[2] ?? 0) : Infinity; // fewest steps, then residual
+      };
+      const pool = cand.slice().sort((a, b) => age(b) - age(a)).slice(0, 12);
       const cur = want != null ? pts.find((p) => p.id === want)
-        : cand.reduce((b, p) => (!b || age(p) > age(b) ? p : b), null);
+        : pool.map((p) => [p, fit(p)]).reduce((b, c) => (!b || c[1] < b[1] ? c : b), null)?.[0];
       if (!cur) { // panels may still be animating (safe area too small): try again shortly
         if ((it.data.tries = (it.data.tries ?? 0) + 1) < 5 && it.card.isConnected) {
           setTimeout(() => it.card.isConnected && KINDS.lk.init(it, stage, getSafeRect).then(() => stage.redraw()), 400);
@@ -534,23 +545,25 @@ const KINDS = {
       const old = tr.byId.get(cur.id).get(F - lag);
       if (!old) return;
       it.lockId = cur.id;
-      const [gT, gI] = await grays(stage, [F - lag, F]);
-      if (!gT || !gI) return;
-      const half = it.spec.win ?? 7;
       const r = lkTranslation(gT.gray, gI.gray, gT.w, gT.h,
-        Math.round(old.x), Math.round(old.y), half, { maxIter: 15, eps: 0.01, init: it.spec.start ?? [0, 0] });
+        Math.round(old.x), Math.round(old.y), half, {
+        maxIter: 15, eps: 0.01,
+        // startOffset: begin this far from OpenCV's answer (a deliberately wrong guess that
+        // still lies inside the basin), so the iterations have visible work to do.
+        init: it.spec.startOffset ? [cur.x - Math.round(old.x) + it.spec.startOffset[0], cur.y - Math.round(old.y) + it.spec.startOffset[1]]
+          : it.spec.start ?? [0, 0],
+      });
       it.data.lk = { r, old, cur, half };
       const truth = [cur.x - Math.round(old.x), cur.y - Math.round(old.y)];
-      // With the inset, list only the first steps and the result to keep the card short.
-      const shown = it.spec.inset && r.iterates.length > 5
-        ? [...r.iterates.slice(0, 3).map((v, k) => [v, k]), [null, '…'], [r.iterates.at(-1), r.iterates.length - 1]]
-        : r.iterates.map((v, k) => [v, k]);
+      const shown = r.iterates.map((v, k) => [v, k]);
       const rows = shown.map(([v, k]) => (v == null ? `<tr><td>${k}</td><td></td><td></td></tr>` : (([x, y, E]) =>
         `<tr><td>${k}</td><td>(${x.toFixed(2)}, ${y.toFixed(2)})</td><td>${E == null ? '—' : E.toFixed(3)}</td></tr>`)(v))).join('');
       const inset = it.spec.inset ? lkInset(it, gT, gI, Math.round(old.x), Math.round(old.y), half, r) : null;
-      setLive(it, `${inset?.html ?? ''}
-        <table class="annot__table"><thead><tr><th>k</th><th>${inline('$\\mathbf{p}_k$')}</th><th>${inline('$E$')}</th></tr></thead><tbody>${rows}</tbody></table>
-        <p class="annot__readout">${r.converged ? 'Converged' : 'Did not converge'} · OpenCV tracker (21×21, pyramid) says ${inline(`$(${truth[0].toFixed(1)}, ${truth[1].toFixed(1)})$`)} · ${inline(`$\\lambda_{\\min} = ${fmt(r.lambdaMin)}$`)}</p>`);
+      // With the inset, the path image replaces the table (keeps the card inside the visible area).
+      const table = inset ? '' : `<table class="annot__table"><thead><tr><th>k</th><th>${inline('$\\mathbf{p}_k$')}</th><th>${inline('$E$')}</th></tr></thead><tbody>${rows}</tbody></table>`;
+      const steps = r.iterates.length - 1;
+      setLive(it, `${inset?.html ?? ''}${table}
+        <p class="annot__readout">${r.converged ? `Converged in ${steps} step${steps === 1 ? '' : 's'}` : 'Did not converge'}${inset ? ` · ${inline(`$E$: ${r.iterates[0][2].toFixed(2)} → ${(r.iterates.at(-2)?.[2] ?? 0).toFixed(2)}`)}` : ''} · OpenCV tracker (21×21, pyramid) says ${inline(`$(${truth[0].toFixed(1)}, ${truth[1].toFixed(1)})$`)} · ${inline(`$\\lambda_{\\min} = ${fmt(r.lambdaMin)}$`)}</p>`);
       inset?.paint();
     },
     draw(ctx, it, a, info) {

@@ -21,7 +21,7 @@ python3 tools/serve.py          # http://localhost:8000
 | `←` | previous line |
 | Timeline (bottom) | drag or click the rail to scrub (tooltip previews the topic); scroll/trackpad over it steps; click a checkpoint to jump to that chapter; when focused: `←`/`→` step, `PageUp`/`PageDown` chapter, `Home`/`End` |
 | `0`–`7` | jump to chapter |
-| `N` | Lab Notebook |
+| `N` | Lab Notebook, opened at the section for the current line (also the "Lab notes §" button) |
 | `L` | open / close the flight log |
 | `V` | sound (voice + phone effects) on/off |
 | `G` | greyscale footage: auto (grey while an overlay points at the footage) → always → off |
@@ -92,6 +92,7 @@ css/style.css                  layout + theme (dialogue bubble, glass cards, not
 js/main.js                     bootstrap, controls, keyboard
 js/config.js                   STAGE size (one constant), overlay + HUD settings
 js/data/chapters.js            ALL content: characters (+ voices), clips, chapters 0–7, references
+js/data/notebook/<n>-<name>.js  Lab Notebook + Full article text, one file per chapter
 js/engine/state.js             tiny observable store
 js/engine/chapterEngine.js     chapters → steps; step player (footage, dialogue, annotations, voice)
 js/stage/stage.js              <video> (cover) + overlay canvas; loop / hold playback; frame grabs
@@ -107,9 +108,10 @@ js/ui/hud.js                   frame / tracked / mean forward-backward error
 js/ui/notebook.js              Lab Notebook drawer (sections + widget)
 js/ui/flightLog.js             flight log in the HUD panel (expands on log entries, collapses when someone talks)
 js/ui/sfx.js                   synthesized phone ring / pickup sounds
-js/widgets/registry.js         widget id → mount(container, api)
-js/widgets/structureTensor.js  reference widget (Ch 2)
-js/widgets/stubs.js            TODO stubs for the other widgets
+js/widgets/registry.js         playground id → mount(container, api)
+js/widgets/pg.js               shared playground helpers (shell, sliders, canvases)
+js/widgets/*.js                one playground per chapter (displacement, flow1d, structureTensor,
+                               lkPlayground, pyramidPlayground, pipelinePlayground, servoPlayground)
 js/lib/imageOps.js             gray, gradients, structure tensor, eig, Harris, Shi–Tomasi, bilinear, LK
 js/lib/markup.js               tiny markup → HTML (+ KaTeX)
 assets/clips/chinatown.mp4     simulated route footage (960x540, 24 fps) + chinatown.route.json timeline

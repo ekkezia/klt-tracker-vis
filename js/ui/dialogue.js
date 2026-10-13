@@ -71,6 +71,11 @@ export function createDialogue({ box, end }, { characters, references, disclaime
   let revealing = false;
   const talker = createTalker();
   let current = null;
+  // "Ready": the line has been fully shown and spoken, so the reader should press
+  // Next. `.dialogue.is-ready` highlights the Space ▶ button and the ▼ arrow.
+  let talkToken = 0;
+  let revealDone = Promise.resolve();
+  let resolveReveal = () => {};
 
   // References panel is static; render once.
   end.querySelector('[data-end="refs"]').innerHTML = references.map((r) => {
@@ -83,6 +88,8 @@ export function createDialogue({ box, end }, { characters, references, disclaime
     clearTimeout(revealTimer);
     revealing = false;
     talker.stop();
+    talkToken++;
+    box.classList.remove('is-ready');
     current = step;
     // The chapter brief (intro step) is shown in the flight log, not here.
     box.hidden = step.type !== 'line';
@@ -102,7 +109,8 @@ export function createDialogue({ box, end }, { characters, references, disclaime
 
   // Word-by-word reveal. KaTeX blocks count as one word.
   function reveal() {
-    if (prefersReducedMotion()) { box.classList.add('is-revealed'); return; }
+    revealDone = new Promise((res) => { resolveReveal = res; });
+    if (prefersReducedMotion()) { box.classList.add('is-revealed'); resolveReveal(); return; }
     box.classList.remove('is-revealed');
     let n = 0;
     const walk = (node) => {
@@ -137,6 +145,7 @@ export function createDialogue({ box, end }, { characters, references, disclaime
     clearTimeout(revealTimer);
     revealing = false;
     box.classList.add('is-revealed');
+    resolveReveal();
   }
 
   /** Animate the current speaker's mouth; `until` is the voice promise (or null). */
@@ -144,6 +153,11 @@ export function createDialogue({ box, end }, { characters, references, disclaime
     if (current?.type !== 'line') return;
     const words = current.line.text.split(/\s+/).length;
     talker.start(els.portrait, current.line.speaker, current.line.expression, until, words);
+    // Ready once the text is fully shown and the voice (if any) has finished.
+    const my = ++talkToken;
+    Promise.all([revealDone, until ?? null]).then(() => {
+      if (my === talkToken) box.classList.add('is-ready');
+    });
   }
 
   return {

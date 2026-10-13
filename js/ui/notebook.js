@@ -39,13 +39,19 @@ export function createNotebook(root, state, api, { chapters, references, onGoToC
     renderedFor = chapter.id;
     if (tab === 'chapter') setHeader(chapter);
     body.innerHTML = chapter.notebook.map((sec) => `
-      <section class="nb-section ${sec.level === 'math' ? 'is-math' : ''}">
+      <section class="nb-section ${sec.level === 'math' ? 'is-math' : ''}" data-sec="${sec.title}">
         <h3>${sec.title}${sec.level === 'math' ? ' <span class="tag">math</span>' : ''}</h3>
         ${render(sec.body)}
       </section>`).join('');
     unmount?.();
     widgetHost.innerHTML = '';
-    unmount = getWidget(chapter.widget)(widgetHost, { ...api, chapter }) ?? null;
+    // A chapter may have several playgrounds (`widget` can be an array).
+    const offs = [].concat(chapter.widget ?? []).map((id) => {
+      const slot = widgetHost.appendChild(document.createElement('div'));
+      slot.className = 'notebook__playground';
+      return getWidget(id)(slot, { ...api, chapter }) ?? null;
+    });
+    unmount = () => offs.forEach((off) => off?.());
   }
 
   function setHeader(chapter) {
@@ -148,11 +154,22 @@ export function createNotebook(root, state, api, { chapters, references, onGoToC
     if (changed.includes('chapter') && !root.hidden) fill(s.chapter);
   });
 
+  /** Open "This chapter" scrolled to the section titled `title`, briefly highlighted. */
+  function openSection(title) {
+    open('chapter');
+    const sec = [...body.querySelectorAll('[data-sec]')].find((el) => el.dataset.sec === title);
+    if (!sec) return;
+    sec.scrollIntoView({ block: 'start' });
+    sec.classList.remove('is-target');
+    void sec.offsetWidth;
+    sec.classList.add('is-target');
+  }
+
   /** Open the Full article scrolled to subsection "i.j". */
   function openAt(num) {
     open('article');
     articleHost.querySelector(`#art-${num.replace('.', '-')}`)?.scrollIntoView({ block: 'start' });
   }
 
-  return { open, openAt, close, toggle: () => (root.hidden ? open() : close()) };
+  return { open, openAt, openSection, close, toggle: () => (root.hidden ? open() : close()) };
 }

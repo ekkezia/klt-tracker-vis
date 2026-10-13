@@ -15,8 +15,10 @@ const fmt = (v) => (Math.abs(v) >= 100 || (Math.abs(v) < 0.01 && v !== 0) ? v.to
 
 export function mountStructureTensor(el, api) {
   el.innerHTML = `
-<div class="widget widget--tensor">
-  <p class="widget__kicker">Widget · structure tensor on the live frame</p>
+<div class="widget widget--tensor pg">
+  <p class="widget__kicker">Playground</p>
+  <h3>Is this window trackable?</h3>
+  <p class="pg__intro">Click anywhere on the frame to place a window. Its gradients, structure tensor and eigenvalues update live; the presets jump to a flat, edge or corner example.</p>
   <div class="tensor-grid">
     <figure class="tensor-frame">
       <canvas data-c="frame" width="${STAGE.width}" height="${STAGE.height}" tabindex="0" role="img"

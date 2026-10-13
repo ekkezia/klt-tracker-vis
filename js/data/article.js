@@ -1,13 +1,14 @@
 // The "Full article" view of the Lab Notebook: the same notebook sections as
-// the story, re-ordered as a linear academic write-up (motivation → background
-// → algorithm → practice → applications → state of the art). Each entry
+// the story, as a linear academic write-up (motivation → background → which
+// points → pyramids and checks → Lucas–Kanade → pipeline → applications → state
+// of the art). Section order matches the story, so chapter k = section k+1. Each entry
 // references a notebook section by chapter id + section title, so the text
-// lives in one place (chapters.js) only.
+// lives in one place (js/data/notebook/<n>-<name>.js) only.
 
 export const article = {
   title: 'Kanade–Lucas–Tomasi feature tracking',
   subtitle: 'Optical flow, good features, and the Lucas–Kanade tracker: a tutorial',
-  abstract: String.raw`Many robots estimate their own motion by following small image patches from one video frame to the next. This article builds the Kanade–Lucas–Tomasi (KLT) tracker from first principles: the brightness-constancy assumption and the optical flow constraint; why some patches cannot be tracked (the aperture problem) and how the structure tensor identifies those that can; Lucas–Kanade tracking as iterative image alignment; the pyramids and checks that make it robust; the complete detect–track–verify–replenish loop; what tracks are used for; and where KLT stands today.`,
+  abstract: String.raw`Many robots estimate their own motion by following small image patches from one video frame to the next. This article builds the Kanade–Lucas–Tomasi (KLT) tracker from first principles: the brightness-constancy assumption and the optical flow constraint; why some patches cannot be tracked (the aperture problem) and how the structure tensor identifies those that can; coarse-to-fine image pyramids for large motion and the checks that catch bad tracks; Lucas–Kanade tracking as iterative image alignment; the complete detect–track–verify–replenish loop; what tracks are used for; and where KLT stands today.`,
   sections: [
     { heading: 'Motivation', parts: [
       ['boot', 'The tracking problem'],
@@ -29,6 +30,12 @@ export const article = {
       ['wall', 'Flat, edge, corner'],
       ['wall', 'Harris vs. Shi–Tomasi'],
     ] },
+    { heading: 'Robust tracking in practice', parts: [
+      ['sprint', 'Image pyramids: coarse-to-fine tracking'],
+      ['sprint', 'Blur, low light and illumination changes'],
+      ['sprint', 'The forward–backward test and re-detection'],
+      ['sprint', 'IMU prediction and visual–inertial odometry (outline)'],
+    ] },
     { heading: 'The Lucas–Kanade algorithm', parts: [
       ['corridor', 'Tracking as image alignment'],
       ['corridor', 'The SSD objective'],
@@ -38,12 +45,6 @@ export const article = {
       ['corridor', 'Jacobians for common warps'],
       ['corridor', 'Sub-pixel sampling'],
       ['corridor', 'Knowing when to give up'],
-    ] },
-    { heading: 'Robust tracking in practice', parts: [
-      ['sprint', 'Image pyramids: coarse-to-fine tracking'],
-      ['sprint', 'Blur, low light and illumination changes'],
-      ['sprint', 'The forward–backward test and re-detection'],
-      ['sprint', 'IMU prediction and visual–inertial odometry (outline)'],
     ] },
     { heading: 'The KLT pipeline', parts: [
       ['crowd', 'The KLT loop'],
