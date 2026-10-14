@@ -21,7 +21,7 @@ export function createGreyscale(button, stageEl) {
   function sync() {
     const grey = mode === 'on' || (mode === 'auto' && pointing);
     stageEl.classList.toggle('stage--grey', grey);
-    button.innerHTML = ICON(mode);
+    button.innerHTML = `${ICON(mode)}<span class="iconbtn__label">Greyscale</span>`;
     button.title = LABEL[mode];
     button.setAttribute('aria-label', LABEL[mode].replace(' (G)', ''));
     button.setAttribute('aria-pressed', String(mode !== 'off'));

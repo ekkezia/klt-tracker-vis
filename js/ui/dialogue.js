@@ -6,7 +6,10 @@ import { inline, render } from '../lib/markup.js';
 import { prefersReducedMotion } from '../config.js';
 import { expressions, frameSrc } from '../data/expressions.js';
 
-const WORD_MS = 28; // reveal speed
+const SPEECH_WORD_MS = 230; // simulated speaking pace while there is no voice recording
+
+/** How long a line takes to "say": the text reveal, the mouth and the overlay delay all follow it. */
+const speechMs = (words) => Math.min(6000, Math.max(900, words * SPEECH_WORD_MS));
 
 /** Portrait: the character's expression frame if it has art, else a monogram. */
 export function portrait(speakerId, characters, size = 'md', frame = null) {
@@ -36,7 +39,7 @@ function createTalker() {
     token++;
     if (img && who) img.src = frameSrc(who, rest);
   }
-  function start(el, speaker, restFrame, until, words) {
+  function start(el, speaker, restFrame, until, ms) {
     stop();
     const ex = expressions[speaker];
     img = el?.querySelector('img');
@@ -55,7 +58,7 @@ function createTalker() {
     };
     tickFrame();
     if (until) until.then(() => { if (my === token) stop(); });
-    else stopTimer = setTimeout(stop, Math.min(6000, Math.max(900, words * 230)));
+    else stopTimer = setTimeout(stop, ms);
   }
   return { start, stop };
 }
@@ -71,6 +74,13 @@ export function createDialogue({ box, end }, { characters, references, disclaime
   let revealing = false;
   const talker = createTalker();
   let current = null;
+  // "Ready": the line was said and its overlay is up, so the reader should press
+  // Next (markReady). `.dialogue.is-ready` highlights the Space ▶ button and the ▼ arrow.
+  let talkToken = 0;
+  let revealDone = Promise.resolve();
+  let resolveReveal = () => {};
+  let spoken = Promise.resolve();
+  let skipSpoken = () => {};
 
   // References panel is static; render once.
   end.querySelector('[data-end="refs"]').innerHTML = references.map((r) => {
@@ -83,8 +93,10 @@ export function createDialogue({ box, end }, { characters, references, disclaime
     clearTimeout(revealTimer);
     revealing = false;
     talker.stop();
+    talkToken++;
+    box.classList.remove('is-ready');
     current = step;
-    // The chapter brief (intro step) is shown in the flight log, not here.
+    // Intro steps show no dialogue box (the HUD headline names the chapter).
     box.hidden = step.type !== 'line';
     end.hidden = step.type !== 'end';
     if (step.type !== 'line') return;
@@ -102,7 +114,9 @@ export function createDialogue({ box, end }, { characters, references, disclaime
 
   // Word-by-word reveal. KaTeX blocks count as one word.
   function reveal() {
-    if (prefersReducedMotion()) { box.classList.add('is-revealed'); return; }
+    revealDone = new Promise((res) => { resolveReveal = res; });
+    spoken = new Promise((res) => { skipSpoken = res; });
+    if (prefersReducedMotion()) { box.classList.add('is-revealed'); resolveReveal(); return; }
     box.classList.remove('is-revealed');
     let n = 0;
     const walk = (node) => {
@@ -129,27 +143,35 @@ export function createDialogue({ box, end }, { characters, references, disclaime
     };
     walk(els.text);
     revealing = true;
-    box.style.setProperty('--word-ms', `${WORD_MS}ms`);
-    revealTimer = setTimeout(finish, n * WORD_MS + 250);
+    const total = speechMs(current.line.text.split(/\s+/).length);
+    box.style.setProperty('--word-ms', `${total / Math.max(1, n)}ms`);
+    revealTimer = setTimeout(finish, total + 250);
   }
 
   function finish() {
     clearTimeout(revealTimer);
     revealing = false;
     box.classList.add('is-revealed');
+    resolveReveal();
   }
 
   /** Animate the current speaker's mouth; `until` is the voice promise (or null). */
   function talk(until) {
     if (current?.type !== 'line') return;
     const words = current.line.text.split(/\s+/).length;
-    talker.start(els.portrait, current.line.speaker, current.line.expression, until, words);
+    talker.start(els.portrait, current.line.speaker, current.line.expression, until, speechMs(words));
   }
 
   return {
     show,
     talk,
+    /** The scene has finished explaining (text, voice and overlay): point the reader at Next. */
+    markReady() { if (current?.type === 'line') box.classList.add('is-ready'); },
+    /** Resolves once the line has been fully "said" (text shown and voice/simulated speech over), or skipped. */
+    whenSpoken(until) {
+      return Promise.race([spoken, Promise.all([revealDone, until ?? null])]);
+    },
     /** If text is still appearing, complete it and return true. */
-    skipReveal() { if (!revealing) return false; finish(); return true; },
+    skipReveal() { if (!revealing) return false; finish(); skipSpoken(); return true; },
   };
 }

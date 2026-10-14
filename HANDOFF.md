@@ -21,9 +21,11 @@ chapters.js ─► buildSteps() ─► steps[]  (intro = chapter brief · one pe
 - **Footage = a journey.** The footage only moves when the reader advances. `buildSteps` gives every step a consecutive stretch `[from, to]` of its chapter's frames. A line's `hold` frame is where the journey stops for that line, and other steps are spread evenly between stops. **Next** plays the stretch once at native speed and pauses on `to` (`stage.playSegment`). Back, timeline and chapter jumps show `to` directly. Annotations appear once the footage has stopped. Nothing loops except the backdrop behind the start screen.
 - **Stand-ins** (`standIns` in `chapters.js`): `{ lucas: 'kanade' }` makes Dr. Kanade speak Dr. Lucas's lines (portrait, call card, voice). Delete the entry to restore Lucas, and revert the five lines of Wren's text that now say "Dr. Kanade".
 - **Concept-first structure.** Ch 0 is three short lines and one question ("how did each point move since the last frame?"). Each later chapter brings in one problem just in time for its concept. The second half is about the tracker itself: Ch 5 is the full KLT loop (detect → track → verify → replenish). Applications are one short tour in Ch 6; limits and what came next are in Ch 7.
-- **Lab Notebook tabs** (`js/ui/notebook.js`): "This chapter" (sections + widget) and "Full article", a linear academic write-up (abstract, contents, numbered sections, references) assembled from the same notebook sections by `js/data/article.js`. Each subsection links back to its chapter in the story. Add or reorder article sections by editing `article.js` only; titles must match notebook section titles.
+- **Lab Notebook** (`js/ui/notebook.js`): one scroll with every chapter, each under a sticky chapter header (plus a chapter strip to jump around). Opening it scrolls to the chapter the story is at, or to the section a line's `ref` names; sections are numbered `chapter.section` (the §i.j shown in the headline and the "Lab notes" button) and link back to the story ("See this in the story"). Playgrounds mount lazily as a chapter scrolls in. The old Full-article tab and `js/data/article.js` are gone.
+- **"Try it" cards** (`pyramidlab`, `tensorlab` in `js/annotations/annotations.js`): interactive on-footage playgrounds; a focus spec's `widget` adds a maximise button that opens the chapter's full playground over the footage.
 - **Phone calls** (`js/ui/sfx.js`, Web Audio, no files): on a line with `event.call` the call card slides in reading "Calling…", and a ring loops (after the line is spoken) until the reader presses Next; then a pickup chirp plays and the card reads "On call". The speaker icon (V) controls voice and effects.
 - **HUD panel + flight log** (`js/ui/flightLog.js`): the panel header shows chapter, location, current topic, and icon readouts (frame, tracks, mean forward–backward error). The flight log shows only the **current** chapter's **brief** (no history of earlier ones) (`chapter.failure`: the problem as a question plus one sentence on what the chapter establishes). It expands on a chapter's opening step and collapses (animated) when a character speaks; L or the toggle reopens it. There is no title card and no separate system/log dialogue line.
+- **Script rule (2026-10-13):** the doctors explain *ideas* in plain words, one idea per line, mostly one doctor per chapter, and **no equations in speech**. Each line's equation goes in `line.math` (shown on the footage as a "The math" card) or in its `focus` overlay; the derivation lives in the Lab Notebook section named by `line.ref`, which the dialogue box links to ("Lab notes §i.j", also the N key). 34 lines / ~840 words in total.
 - **Density rule (2026-10-12):** no element may repeat what another already shows. Removed for that reason: the chapter title card and its hook quote, the separate flight-log dialogue lines, recap lines that restate a doctor, the per-chapter "open the notebook" step, the notebook roadmap (the timeline shows it), and the invented "confidence" meter.
 - **No Story/Full-math switch any more:** all notebook sections are always shown, and a line's `math` note appears as a "The math" card on the footage.
 - **Portraits** (`js/data/expressions.js`): Wren and Dr. Kanade use 12-frame expression sets cut by `tools/split_sprites.py`. While a line is spoken, the portrait swaps between `talk.closed` / `talk.open` (occasionally `talk.wide`) frames every ~100–165 ms, for as long as the voice clip plays (or an estimate from the word count), then rests. A line may set `expression: '<frame id>'` as its rest frame. Characters without art fall back to a monogram.
@@ -107,7 +109,23 @@ api = {
 }
 ```
 
-Register in `js/widgets/registry.js`. Widget ids used by chapters: `briefing`, `flow-1d`, `structure-tensor` (**implemented**), `lk-iterations`, `pyramid`, `flow-field`, `servo`, `pipeline-inspector`. `widgets/structureTensor.js` is the reference pattern: it renders into its container only, recomputes on `onFrame`, and returns its unsubscribe.
+**Chapter order (2026-10-13):** pyramids (Ch 3) come before Lucas–Kanade (Ch 4), at the user's request. To keep the footage running forward, `chapters.js` re-splits the recording (`SPRINT`, `ALONG_FENCE`, `LK_FRAME` = 1725) instead of using route chapters 3–4; the Straus Square walk (≈1050–1379) is skipped. `lkTranslation` now stops when λmin per pixel < 1e-4 (OpenCV's minEigThreshold), so flat or noise-only windows fail instead of jumping.
+
+Register in `js/widgets/registry.js`. Every chapter except 7 has at least one **playground** at the top of its Lab Notebook tab (shared helpers in `js/widgets/pg.js`: `shell`, `slider`, `check`, `controls`, `crisp`, `drawGray`):
+
+| id | file | Ch | what the reader does |
+|---|---|---|---|
+| `displacement` | displacement.js | 0 | speed / distance / fps → px per frame vs. the LK and pyramid ranges |
+| `flow-1d` | flow1d.js | 1 | shift a 1-D bump; per-pixel vs. window least squares vs. iterated |
+| `aperture` | aperturePlayground.js | 1 | bar behind a circular window; drag the true motion in velocity space; constraint line, normal flow |
+| `structure-tensor` | structureTensor.js | 2 | click a window on the frame; H, λ₁, λ₂, Harris, Shi–Tomasi |
+| `pyramid-synth` | pyramidSynth.js | 3 | test scene with exact motion: presets, levels, iterations, noise; per-level table; one-shot vs. KLT |
+| `pyramid` | pyramidPlayground.js | 3 | real footage: frame gap × pyramid levels, single-level vs. pyramidal LK, error vs. gap chart |
+| `lk-iterations` | lkPlayground.js | 4 | pick a corner, click a start on the E(p) surface, step Gauss–Newton (real frames) |
+| `pipeline-inspector` | pipelinePlayground.js | 5 | re-run detect → track → FB verify → replenish on 16 frames with your parameters |
+| `servo` | servoPlayground.js | 6 | IBVS docking on 4 corners: start pose, gain, known vs. assumed depth |
+
+Real-frame playgrounds use the chapter's key frame (its first held line) via `grabFramesAt`, so results don't depend on where the story is. `lkPyramid` / `buildPyramid` (imageOps.js) are a plain re-implementation (2×2-average pyramid, no pre-smoothing), so their errors run higher than OpenCV's.
 
 Stage API available to widgets and annotations, in addition to the above: `grabFramesAt(frames[]) → Promise<ImageData[]>` (seeks to each frame, grabs it, then restores playback), `toScreen(x, y)`, `toNative(sx, sy)`, `transform`, `onDraw(fn(ctx, info))`, `onUnderlay(fn(ctx, info))` (beneath the dots), `setFocusProvider(() => Set<id> | null)` (dim other tracks), `redraw()`, `playRange(a, b)`, `hold(f) → Promise`.
 
@@ -162,14 +180,14 @@ Prefer `{ track: 'auto' }` and `{ auto: … }` anchors: they keep working when f
 **TODO(creative)**
 - `css/style.css`: whole theme is a clean base (type, colour, motion).
 - Art for Dr. Tomasi and Dr. Lucas (4×3 sheet → `tools/split_sprites.py` → add to `expressions.js`). Pick per-line `expression`s for emphasis (surprise, laughter).
-- **Voice-over** is complete (52 clips, 2026-10-12). Voices: "Wren - Robot", "Kanade" (own Voice Design voice, light Japanese accent), "Tomasi" — all account-owned, so they work on the free API tier. After editing a line, run `node tools/make_voices.mjs` (only changed lines are regenerated; `--dry-run` shows the cost).
+- **Voice-over needs regenerating**: the script was rewritten on 2026-10-13 and all old clips were pruned (`--prune-stale`, which now also removes clips for lines that no longer exist), so the site is silent. New script: 34 lines, ~4,600 characters. Voices: "Wren - Robot", "Kanade" (own Voice Design voice, light Japanese accent), "Tomasi" — all account-owned, so they work on the free API tier. Run `node tools/make_voices.mjs --dry-run`, then `node tools/make_voices.mjs` once the user approves.
 - `js/ui/dialogue.js`: text-blip sound / per-character reveal; optional auto-advance when the voice line ends (`voice.onEnded`).
 - `js/ui/icons.js`: checkpoint symbols are simple line art; replace with hand-drawn ones (same 40×40 box, `currentColor`).
 - `js/annotations/annotations.js`: entrance/exit motion.
 - Route mini-map in the HUD panel (REVIEW item 22, optional): needs per-frame robot poses exported from `sim/` alongside `route.json`.
 - `js/ui/phoneCall.js`: ring-in / hang-up animation, waveform.
 - `js/stage/scenes.js`: every scene is a placeholder annotation; `crowd` needs footage with forward motion (FOE/expansion); `docking` takes the centroid of *all* points, not just the target's.
-- `js/widgets/stubs.js`: `briefing`, `flow-1d`, `lk-iterations`, `pyramid`, `flow-field`, `servo`, `pipeline-inspector`. Each stub states its intended behaviour.
+- Playground ideas not built: time-to-contact fitting on an approaching object (Ch 6), gyro de-rotation (Ch 4).
 - `js/data/chapters.js` (Ch 7): the pipeline-inspector section.
 
 **TODO(content)** (all in `js/data/chapters.js`)
@@ -181,16 +199,16 @@ Prefer `{ track: 'auto' }` and `{ auto: … }` anchors: they keep working when f
 
 | Ch | id | Place | `status` | Dialogue | Notebook | Widget |
 |---|---|---|---|---|---|---|
-| 0 | boot | Happy Star Bakery, Canal St | written | 3 lines | 3 sections, Fig. 1 | stub (`briefing`) |
-| 1 | lobby | East Broadway sidewalk | written | 10 lines | 6 sections | stub (`flow-1d`) |
-| 2 | wall | Straus Square, by a box truck | written | 9 lines | 6 sections, Figs. 2–3 | **implemented** |
-| 3 | corridor | Across Straus Square | written | 11 lines | 8 sections | stub (`lk-iterations`) |
-| 4 | sprint | Crossing Canal Street | outline | 6 lines | 4 sections (5.1, 5.3 full; 5.4 outline), Fig. 4 | stub |
-| 5 | crowd | Seward Park | written | 6 lines | 5 sections, Fig. 5 | stub |
-| 6 | docking | The Seward Park dock | outline | 5 lines | 4 sections (outlines) | stub |
-| 7 | debrief | Docked in Seward Park | outline | 2 lines | 4 sections incl. State of the art | stub |
+| 0 | boot | Happy Star Bakery, Canal St | written | 3 lines | 3 sections, Fig. 1 | `displacement` |
+| 1 | lobby | East Broadway sidewalk | written | 5 lines | 6 sections | `flow-1d` |
+| 2 | wall | Straus Square, by a box truck | written | 5 lines | 6 sections, Figs. 2–3 | `structure-tensor` |
+| 3 | sprint | Crossing Canal Street (frames 1380–1640) | outline | 4 lines | 4 sections (4.1, 4.3 full; 4.4 outline), Fig. 4 | `pyramid-synth` + `pyramid` |
+| 4 | corridor | Canal Street, by the park fence (1641–2102) | written | 5 lines | 8 sections | `lk-iterations` |
+| 5 | crowd | Seward Park | written | 5 lines | 5 sections, Fig. 5 | `pipeline-inspector` |
+| 6 | docking | The Seward Park dock | outline | 5 lines | 4 sections (outlines) | `servo` |
+| 7 | debrief | Docked in Seward Park | outline | 2 lines | 4 sections incl. State of the art | none |
 
-Outline chapters get a "draft" tag in the flight log; outline notebook sections get a "draft" tag in the Full article.
+Outline chapters get a "draft" tag in the flight log; 
 
 ## 5. Math: verified vs. to verify
 

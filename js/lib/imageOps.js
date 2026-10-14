@@ -144,7 +144,10 @@ export function bilinear(gray, width, height, x, y) {
  *
  * Returns { p: [px, py], iterates: [[px, py, E], ...], converged, lambdaMin }.
  */
-export function lkTranslation(T, I, width, height, x, y, half, { maxIter = 20, eps = 0.01, init = [0, 0] } = {}) {
+// minEig: like OpenCV's minEigThreshold, stop when the smallest eigenvalue of H
+// per window pixel falls below it (flat or noise-only window: the update would
+// be a wild jump, not a measurement).
+export function lkTranslation(T, I, width, height, x, y, half, { maxIter = 20, eps = 0.01, init = [0, 0], minEig = 1e-4 } = {}) {
   let px = init[0], py = init[1];
   const iterates = [];
   let converged = false, lambdaMin = 0;
@@ -152,7 +155,7 @@ export function lkTranslation(T, I, width, height, x, y, half, { maxIter = 20, e
     let a = 0, b = 0, c = 0, bx = 0, by = 0, E = 0;
     for (let dy = -half; dy <= half; dy++) {
       for (let dx = -half; dx <= half; dx++) {
-        const t = T[(y + dy) * width + (x + dx)];
+        const t = T[Math.min(height - 1, Math.max(0, y + dy)) * width + Math.min(width - 1, Math.max(0, x + dx))];
         const sx = x + dx + px, sy = y + dy + py;
         const iv = bilinear(I, width, height, sx, sy);
         const gx = (bilinear(I, width, height, sx + 1, sy) - bilinear(I, width, height, sx - 1, sy)) / 2;
@@ -167,6 +170,7 @@ export function lkTranslation(T, I, width, height, x, y, half, { maxIter = 20, e
     const det = a * c - b * b;
     lambdaMin = eig2(a, b, c).l2;
     if (Math.abs(det) < 1e-12) break; // H singular: flat patch or pure edge
+    if (lambdaMin / ((2 * half + 1) ** 2) < minEig) break; // too little texture to trust a step
     const dpx = (c * bx - b * by) / det;
     const dpy = (a * by - b * bx) / det;
     px += dpx; py += dpy;
@@ -223,4 +227,31 @@ export function samplePatch(gray, width, height, cx, cy, half, step = 1) {
     for (let i = 0; i < n; i++) out[j * n + i] = bilinear(gray, width, height, cx + (i - half) * step, cy + (j - half) * step);
   }
   return out;
+}
+
+/**
+ * Pyramidal (coarse-to-fine) Lucas–Kanade translation, after Bouguet (2000).
+ * pyr0 / pyr1: arrays of { gray, w, h } (level 0 = full resolution).
+ * Solves at the top level from a zero guess, then doubles the estimate as the
+ * starting guess for each finer level. Returns the full-resolution shift
+ * (relative to the rounded start point) and a per-level log.
+ */
+export function lkPyramid(pyr0, pyr1, x, y, half, levels, opts = {}) {
+  let g = [0, 0];
+  const log = [];
+  for (let l = levels - 1; l >= 0; l--) {
+    const s = 2 ** l, L0 = pyr0[l], L1 = pyr1[l];
+    const cx = Math.round(x / s), cy = Math.round(y / s);
+    const r = lkTranslation(L0.gray, L1.gray, L0.w, L0.h, cx, cy, half, { maxIter: 30, eps: 0.02, ...opts, init: g });
+    log.push({ level: l, guess: g, p: r.p, steps: r.iterates.length - 1, converged: r.converged });
+    g = l ? [2 * r.p[0], 2 * r.p[1]] : r.p;
+  }
+  return { p: g, log };
+}
+
+/** Gaussian-free image pyramid by repeated 2×2 averaging (see downsample2). */
+export function buildPyramid(gray, width, height, levels) {
+  const pyr = [{ gray, w: width, h: height }];
+  for (let l = 1; l < levels; l++) pyr.push(downsample2(pyr[l - 1].gray, pyr[l - 1].w, pyr[l - 1].h));
+  return pyr;
 }

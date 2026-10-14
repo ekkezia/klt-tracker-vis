@@ -180,6 +180,13 @@ async function main() {
       }
       if (!manifest[j.key]) chars += j.text.length;
     }
+    // Clips for lines that no longer exist (the dialogue got shorter).
+    const live = new Set(jobs.map((j) => j.key));
+    for (const k of Object.keys(manifest)) {
+      if (live.has(k) || (ONLY && !ONLY.includes(k.split(':')[0]))) continue;
+      await unlink(join(ROOT, manifest[k])).catch(() => {});
+      delete manifest[k]; delete cache[k]; removed++;
+    }
     await writeFile(MANIFEST, JSON.stringify(manifest, null, 2));
     await writeFile(CACHE, JSON.stringify(cache, null, 2));
     console.log(`Removed ${removed} stale clips. Lines without audio: ${chars} characters to generate.`);
