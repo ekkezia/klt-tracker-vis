@@ -75,8 +75,8 @@ export const standIns = { lucas: 'kanade' };
 export const clips = {
   // Three.js simulation of the real route (sim/), tracked with real KLT (tools/track_video.py).
   chinatown: {
-    src: 'assets/clips/chinatown.mp4',
-    tracks: 'assets/tracks/chinatown.json.gz',
+    src: 'assets/clips/chinatown.mp4?v=sky1', // ?v= busts browser caches when the footage is re-recorded
+    tracks: 'assets/tracks/chinatown.json.gz?v=sky1',
   },
 };
 
@@ -186,7 +186,7 @@ Whole window: $u^\star = +1$ ✓` },
         focus: { kind: 'tensor', at: { auto: 'flat', region: TRUCK }, title: 'Blank panel', body: 'Gradients are almost zero in {{flat|this window}}. There is nothing to lock onto.' },
         speaker: 'wren', text: 'A truck has stopped in front of me. Points on its plain panel drift, and points on its edges slide along them. I\'m calling Dr. Tomasi.', event: { call: 'tomasi' } },
       { topic: 'The aperture problem', ref: 'The aperture problem', hold: K.truckStop + 24,
-        focus: { kind: 'aperture', at: { auto: 'edge', region: TRUCK }, title: 'The aperture problem', body: '{{good|Across the edge (✓)}} a shift changes what the window sees. {{bad|Along it (?)}} nothing changes.' },
+        focus: { kind: 'aperturelab', widget: 'aperture', at: { auto: 'edge', region: TRUCK }, title: 'The aperture problem: drag the true motion', body: '{{good|Across the edge (✓)}} a shift changes what the window sees. {{bad|Along it (?)}} nothing changes.' },
         math: R`Only the **normal flow** is measurable: $\mathbf{d}_\perp = -\dfrac{I_t}{\|\nabla I\|}\dfrac{\nabla I}{\|\nabla I\|}$.`,
         speaker: 'tomasi', text: 'Hello, Wren. Through a small window, a straight edge looks the same when it slides along itself. Only motion across the edge can be measured. This is the **aperture problem**.' },
       { topic: 'The structure tensor', ref: 'The structure tensor', hold: K.truckStop + 24,
@@ -354,7 +354,7 @@ Whole window: $u^\star = +1$ ✓` },
     },
     dialogue: [
       { topic: 'Recap', ref: 'Strengths', speaker: 'wren', text: 'Delivered, with no GPS. KLT in one breath: follow small windows at corners, refine each shift to a fraction of a pixel, use pyramids for big jumps, and check every track.' },
-      { topic: 'Strengths and limits', ref: 'Limits', speaker: 'wren', text: 'It is fast and precise, but it needs small motion and steady lighting, and it forgets a point once it is lost. The Lab Notebook shows what came next.' },
+      { topic: 'Strengths and limits', ref: 'Limits', speaker: 'wren', text: 'It is fast and precise, but it needs small motion and steady lighting, and it forgets a point once it is lost. The Article shows what came next.' },
     ],
     notebook: nb_debrief,
     widget: null,

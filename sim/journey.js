@@ -134,6 +134,17 @@ export function planJourney(data) {
     hold(48);
   });
   chapter(7, () => hold(84));                // debrief, docked
+  // Ending (after the last chapter, so no chapter range moves): the camera tilts up to the sky, where the
+  // references appear on the clouds. keys.skyStart..skyEnd is the pan, then a short hold.
+  mark('skyStart');
+  {
+    const last = out[out.length - 1], p0 = last.pitch, N = 96, H = 72;
+    for (let k = 0; k < N + H; k++) {
+      const t = Math.min(1, k / N), e = t * t * (3 - 2 * t);
+      out.push({ ...last, pitch: p0 + (1.12 - p0) * e, yaw: last.yaw + 0.06 * (k / (N + H)) });
+    }
+  }
+  keys.skyEnd = out.length - 1;
 
   return {
     frames: out, chapters, keys, fps: FPS,

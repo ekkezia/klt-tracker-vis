@@ -20,16 +20,11 @@
 
     <!-- Top bar: HUD on the left, controls on the right -->
     <header class="topbar">
-      <!-- Chapter header and tracker readouts, one HUD panel. -->
+      <!-- Chapter header and dot-colour legend, one HUD panel. -->
       <section id="hudpanel" class="hudpanel" data-state="collapsed" data-annot-avoid>
         <div class="hudpanel__head">
-          <p class="hudpanel__kicker"><span class="hudpanel__tick" aria-hidden="true"></span><span id="stage-place"></span></p>
+          <p class="hudpanel__kicker"><span class="hudpanel__icon" id="stage-icon" aria-hidden="true"></span><span id="stage-place"></span></p>
           <h2 id="headline-title" class="hudpanel__title" aria-live="polite"></h2>
-          <dl id="hud" class="hud">
-            <div title="Frame"><dt><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M5 3v10M11 3v10M2 6h3M2 10h3M11 6h3M11 10h3"/></svg><span class="sr-only">Frame</span></dt><dd data-hud="frame">0000</dd></div>
-            <div title="Features tracked"><dt><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M8 1v3M8 12v3M1 8h3M12 8h3"/><circle cx="8" cy="8" r="1.2" class="fill"/></svg><span class="sr-only">Tracked</span></dt><dd data-hud="tracked">0</dd></div>
-            <div title="Mean forward–backward error of the tracked points (px)"><dt><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v5M5.5 4.5h5M5.5 11.5h5"/><circle cx="8" cy="8" r="6.5" stroke-dasharray="2 2"/></svg><span class="sr-only">Mean error</span></dt><dd data-hud="err">—</dd></div>
-          </dl>
           <ul class="hud-legend" aria-label="Dot colours">
             <li><i class="hud-legend__dot" aria-hidden="true"></i>tracked</li>
             <li><i class="hud-legend__dot hud-legend__dot--new" aria-hidden="true"></i>new</li>
@@ -40,10 +35,12 @@
       <nav class="controls" aria-label="Controls">
         <button type="button" class="chip chip--nb" data-open-notebook>
           <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M6 5h4M6 8h4M6 11h2M3 4H2M3 8H2M3 12H2"/></svg>
-          Lab Notebook <kbd>N</kbd>
+          Article <kbd>N</kbd>
         </button>
-        <button type="button" id="grey-toggle" class="iconbtn iconbtn--label" aria-pressed="true" aria-label="Greyscale: auto" title="Greyscale: auto (G)"></button>
-        <button type="button" id="voice-toggle" class="iconbtn" aria-pressed="false" aria-label="Sound" title="Sound (V)"></button>
+        <div class="controls__sub">
+          <button type="button" id="grey-toggle" class="iconbtn iconbtn--label" aria-pressed="true" aria-label="Greyscale: auto" title="Greyscale: auto (G)"></button>
+          <button type="button" id="voice-toggle" class="iconbtn" aria-pressed="false" aria-label="Sound" title="Sound (V)"></button>
+        </div>
       </nav>
     </header>
 
@@ -82,7 +79,7 @@
       <h1>Follow the Corner</h1>
       <p class="start__lede">A small delivery drone has no GPS indoors. Three doctors walk it through the Kanade–Lucas–Tomasi tracker, one breakdown at a time.</p>
       <button type="button" class="btn btn--big" id="start-btn">Begin</button>
-      <p class="hint"><kbd>Space</kbd>/<kbd>→</kbd> next · <kbd>←</kbd> back · drag or scroll the timeline · <kbd>0</kbd>–<kbd>7</kbd> chapters · <kbd>N</kbd> notebook · <kbd>V</kbd> sound</p>
+      <p class="hint"><kbd>Space</kbd>/<kbd>→</kbd> next · <kbd>←</kbd> back · drag or scroll the timeline · <kbd>0</kbd>–<kbd>7</kbd> chapters · <kbd>N</kbd> article · <kbd>V</kbd> sound</p>
     </section>
 
     <p id="stage-desc" class="sr-only"></p>
@@ -90,13 +87,11 @@
 
   <aside id="notebook" class="notebook" hidden aria-labelledby="nb-title" role="dialog" aria-modal="false">
     <header class="notebook__head">
-      <div>
-        <p class="kicker" data-nb="kicker"></p>
-        <h2 id="nb-title" data-nb="title"></h2>
-      </div>
-      <button type="button" class="chip" data-nb="close">Close <kbd>Esc</kbd></button>
+      <h2 class="notebook__title" id="nb-title">Article</h2>
+      <nav class="notebook__nav" data-nb="nav" aria-label="Chapters"></nav>
+      <button type="button" class="nb-iconbtn" data-nb="max" aria-pressed="false" aria-label="Maximise the article" title="Maximise">⤢</button>
+      <button type="button" class="nb-iconbtn" data-nb="close" aria-label="Close the article" title="Close (Esc)">✕</button>
     </header>
-    <nav class="notebook__nav" data-nb="nav" aria-label="Chapters"></nav>
     <div class="notebook__scroll">
       <div data-nb="body" class="notebook__body"></div>
     </div>

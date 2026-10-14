@@ -13,6 +13,8 @@
 //           'fb'         forward–backward error ring on every track (scale, labels)
 //           'replenish'  tracks lost (×) and corners detected (rings) in the last `lag` frames
 //           'pyramid'    inset: the anchored track's motion at pyramid levels 0..3
+//           'aperturelab' interactive: drag the true motion in velocity space; only the part across the
+//                        real edge under the anchor is measurable (normal flow)
 //           'tensorlab'  interactive: Flat / Edge / Corner presets plus window-size and
 //                        threshold sliders; the live structure tensor at the anchor
 //           'pyramidlab' interactive: frame-gap and pyramid-level sliders on the anchored
@@ -52,6 +54,7 @@ import {
   minEigenMap, downsample2, samplePatch, bilinear, buildPyramid, lkPyramid,
 } from '../lib/imageOps.js';
 import { arrow } from '../stage/scenes.js';
+import { prefersReducedMotion } from '../config.js';
 import { getWidget } from '../widgets/registry.js';
 
 const TAU = 0.1; // classification threshold, same default as the Ch 2 widget
@@ -59,6 +62,7 @@ const fmt = (v) => (Math.abs(v) >= 100 || (Math.abs(v) < 0.01 && v !== 0) ? v.to
 const CLASS_TEXT = { flat: 'Flat', edge: 'Edge', corner: 'Corner' };
 const fmtTex = (v) => fmt(v).replace(/e([+-]?)(\d+)$/, (_, sg, d) => `\\times 10^{${sg === '-' ? '-' : ''}${d}}`);
 const FOCUS_KINDS = new Set(['flow', 'lk', 'pyramid', 'pyramidlab', 'patches', 'window']);
+const AP_RANGE = 4, AP_SIZE = 200;   // aperturelab: velocity space shows ±4 px/frame in a 200 px square
 const TL_CLASSES = ['flat', 'edge', 'corner'];
 
 export function createAnnotations(layer, stage, { getSafeRect, onFocus, getWidgetApi }) {
@@ -102,6 +106,15 @@ export function createAnnotations(layer, stage, { getSafeRect, onFocus, getWidge
       tick();
     } else stage.redraw();
   }
+  // Keyed words glow by default, so while a card has any, keep the overlay redrawing (about 24 fps) to animate the pulse.
+  let idleTimer = 0;
+  function startIdle() {
+    stopIdle();
+    if (!items.some((it) => it.card.querySelector('.key[data-key]'))) return;
+    const tick = () => { if (!document.hidden) stage.redraw(); idleTimer = setTimeout(tick, 42); };
+    idleTimer = setTimeout(tick, 42);
+  }
+  function stopIdle() { clearTimeout(idleTimer); idleTimer = 0; }
   layer.addEventListener('pointerover', (e) => { const c = e.target.closest?.('.key'); if (c) setActive(c); });
   layer.addEventListener('pointerout', (e) => { if (e.target.closest?.('.key') && !e.relatedTarget?.closest?.('.key')) setActive(null); });
   layer.addEventListener('focusin', (e) => { const c = e.target.closest?.('.key'); if (c) setActive(c); });
@@ -122,15 +135,16 @@ export function createAnnotations(layer, stage, { getSafeRect, onFocus, getWidge
       const col = keyColor(key);
       const hot = active?.it === it && active.key === key;
       const faded = active?.it === it && !hot; // another key of this card is hovered
-      const halo = (m) => (m.r ?? 0) + (hot ? 9 + 3 * Math.sin(performance.now() / 160) : 7) * px;
+      // Glowing by default (a slow pulse, so the reader sees what the words point at); stronger on hover.
+      const halo = (m) => (m.r ?? 0) + (hot ? 9 + 3 * Math.sin(performance.now() / 160) : 7.5 + 1.8 * Math.sin(performance.now() / 380)) * px;
       // Halos: always when there are few marks; for crowds (every track) only on hover.
       if (marks.length <= 40 || hot) {
         ctx.save();
         if (faded) ctx.globalAlpha = 0.2;
         ctx.strokeStyle = col;
         ctx.shadowColor = col;
-        ctx.shadowBlur = hot ? 14 : 6;
-        ctx.lineWidth = (hot ? 3 : 2) * px;
+        ctx.shadowBlur = hot ? 18 : 12;
+        ctx.lineWidth = (hot ? 3 : 2.6) * px;
         for (const m of marks) { ctx.beginPath(); ctx.arc(m.x, m.y, halo(m), 0, Math.PI * 2); ctx.stroke(); }
         ctx.restore();
       }
@@ -149,7 +163,7 @@ export function createAnnotations(layer, stage, { getSafeRect, onFocus, getWidge
       ctx.save();
       ctx.strokeStyle = col;
       ctx.fillStyle = col;
-      ctx.globalAlpha = hot ? 1 : faded ? 0.2 : 0.85;
+      ctx.globalAlpha = hot ? 1 : faded ? 0.2 : 0.95;
       ctx.lineWidth = (hot ? 2.5 : 1.5) * px;
       ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex + ((m.x - ex) * stop) / d, ey + ((m.y - ey) * stop) / d); ctx.stroke();
       ctx.beginPath(); ctx.arc(ex, ey, 2.5 * px, 0, Math.PI * 2); ctx.fill();
@@ -186,7 +200,7 @@ export function createAnnotations(layer, stage, { getSafeRect, onFocus, getWidge
       if (spec.widget) {
         const max = Object.assign(document.createElement('button'), { type: 'button', className: 'annot__max', title: 'Maximise: the full playground', innerHTML: '⤢' });
         max.setAttribute('aria-label', 'Maximise the playground');
-        max.addEventListener('click', () => openMax(spec));
+        max.addEventListener('click', () => openMax(spec, max));
         card.appendChild(max);
       }
       layer.appendChild(card);
@@ -194,6 +208,7 @@ export function createAnnotations(layer, stage, { getSafeRect, onFocus, getWidge
       const it = { spec, kind, card, live: card.querySelector('.annot__live'), anchor: null, lockId: null, data: {}, stage, marks: [] };
       return it;
     });
+    startIdle();
     // Async set-up (auto anchors, frame grabs) after the current frame exists.
     items.forEach(async (it) => {
       await it.kind.init?.(it, stage, getSafeRect);
@@ -205,14 +220,14 @@ export function createAnnotations(layer, stage, { getSafeRect, onFocus, getWidge
 
   // --- maximised "Try it": the chapter's full notebook playground, over the footage -------
   let maxed = null; // { el, offs, from }
-  function openMax(spec) {
+  function openMax(spec, fromBtn = null) {
     closeMax();
     const el = document.createElement('div');
     el.className = 'tryit-max';
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-modal', 'true');
     el.innerHTML = `<div class="tryit-max__panel">
-      <header class="tryit-max__head"><h2>${inline(spec.title ?? 'Try it')}</h2><button type="button" class="tryit-max__close">Close <kbd>Esc</kbd></button></header>
+      <header class="tryit-max__head"><h2>${inline(spec.title ?? 'Try it')}</h2><button type="button" class="tryit-max__close nb-iconbtn" aria-label="Close" title="Close (Esc)">✕</button></header>
       <div class="tryit-max__body notebook__widget"></div></div>`;
     const host = el.querySelector('.tryit-max__body');
     const offs = [].concat(spec.widget).map((id) => {
@@ -223,22 +238,30 @@ export function createAnnotations(layer, stage, { getSafeRect, onFocus, getWidge
     maxed = { el, offs, from: document.activeElement };
     document.body.append(el);
     document.body.classList.add('tryit-open');
+    // Grow out of the button that was clicked (the panel's transform-origin is that button).
+    const panel = el.querySelector('.tryit-max__panel'), pr = panel.getBoundingClientRect(), br = fromBtn?.getBoundingClientRect();
+    if (br) panel.style.transformOrigin = `${br.left + br.width / 2 - pr.left}px ${br.top + br.height / 2 - pr.top}px`;
     const closeBtn = el.querySelector('.tryit-max__close');
-    closeBtn.addEventListener('click', closeMax);
-    el.addEventListener('click', (e) => { if (e.target === el) closeMax(); });
-    el.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeMax(); } else e.stopPropagation(); });
+    closeBtn.addEventListener('click', () => closeMax(true));
+    el.addEventListener('click', (e) => { if (e.target === el) closeMax(true); });
+    el.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeMax(true); } else e.stopPropagation(); });
     closeBtn.focus();
   }
-  function closeMax() {
+  function closeMax(animate = false) {
     if (!maxed) return;
-    maxed.offs.forEach((off) => off?.());
-    maxed.el.remove();
-    document.body.classList.remove('tryit-open');
-    maxed.from?.focus?.();
+    const { el, offs, from } = maxed;
     maxed = null;
+    offs.forEach((off) => off?.());
+    document.body.classList.remove('tryit-open');
+    from?.focus?.();
+    if (animate && !prefersReducedMotion()) { // shrink back into the button, then remove
+      el.classList.add('is-closing');
+      setTimeout(() => el.remove(), 260);
+    } else el.remove();
   }
 
   function clear() {
+    stopIdle();
     closeMax();
     token++;
     active = null;
@@ -468,6 +491,7 @@ const KINDS = {
       }
       setLive(it, `
         <p class="annot__badge" data-cls="${cls}">${CLASS_TEXT[cls]}</p>
+        ${TENSOR_INSET}
         <table class="annot__table"><tbody>
           <tr><th>${inline('$\\lambda_1$')}</th><td>${fmt(t.l1)}</td></tr>
           <tr><th>${inline('$\\lambda_2$')}</th><td>${fmt(t.l2)}</td></tr>
@@ -475,6 +499,7 @@ const KINDS = {
           <tr><th>Harris ${inline('$R$')}</th><td>${harrisText(harris(t.a, t.b, t.c, 0.05))}</td></tr>
         </tbody></table>
         <p class="annot__readout">ellipse = gradient spread (∝√λ)</p>`);
+      drawTensorInset(it, an, a, half, t, { flat: '#cbd5e1', edge: '#f59e0b', corner: '#34d399' }[cls]);
       stage.redraw();
     },
     draw(ctx, it, a, info) {
@@ -493,6 +518,26 @@ const KINDS = {
       ctx.beginPath();
       ctx.ellipse(a.x, a.y, Math.max(r1, info.px), Math.max(r2, info.px), Math.atan2(t.v1[1], t.v1[0]), 0, Math.PI * 2);
       ctx.stroke();
+    },
+  },
+
+  // Interactive aperture problem on the real edge under the anchor: drag the true motion in velocity
+  // space; every velocity on the dashed line looks the same through the window.
+  aperturelab: {
+    reach: () => 66,
+    async init(it, stage, getSafeRect) { await autoAnchor(it, stage, getSafeRect); buildApertureLab(it); },
+    onFrame(it, stage) { KINDS.aperture.onFrame(it, stage); updateApertureLab(it); },
+    draw(ctx, it, a, info) {
+      KINDS.aperture.draw(ctx, it, a, info);
+      const ax = apertureAxes(it), v = it.data.vel;
+      if (!ax || !v) return;
+      const px = info.px, K = 16 * px, vn = v[0] * ax.n[0] + v[1] * ax.n[1];
+      ctx.lineWidth = 3 * px;
+      ctx.strokeStyle = '#f5a524';                                           // what the window can measure
+      arrow(ctx, a.x, a.y, a.x + ax.n[0] * vn * K, a.y + ax.n[1] * vn * K, 8 * px);
+      ctx.strokeStyle = '#5ab8f5'; ctx.fillStyle = '#5ab8f5';                // the true motion
+      arrow(ctx, a.x, a.y, a.x + v[0] * K, a.y + v[1] * K, 8 * px);
+      ctx.beginPath(); ctx.arc(a.x + v[0] * K, a.y + v[1] * K, 4 * px, 0, Math.PI * 2); ctx.fill();
     },
   },
 
@@ -877,6 +922,97 @@ const KINDS = {
   },
 };
 
+// --- tensor inset: what is inside the ellipse ----------------------------------------
+/** Markup for the two canvases: the window magnified, and its gradients as dots. */
+const TENSOR_INSET = `<div class="annot__insets annot__ti">
+  <figure class="annot__inset"><canvas data-ti="patch" width="240" height="240"></canvas><figcaption>the window, magnified</figcaption></figure>
+  <figure class="annot__inset"><canvas data-ti="grad" width="240" height="240"></canvas><figcaption>its gradients: one dot per pixel</figcaption></figure></div>`;
+
+/** Paint the window and its (Ix, Iy) scatter, each with the tensor's ellipse over it. */
+function drawTensorInset(it, an, a, half, t, color) {
+  const cp = it.live.querySelector('[data-ti="patch"]'), cg = it.live.querySelector('[data-ti="grad"]');
+  if (!cp || !cg || !an || !t) return;
+  const n = 2 * half + 1, S = cp.width, M = S / 2, MAXG = 0.3; // 0.3 grey levels / px fills the plot
+  const x0 = Math.round(a.x), y0 = Math.round(a.y);
+  paintPatch(cp, samplePatch(an.gray, an.w, an.h, x0, y0, half), n, 'gray');
+  // semi-axes of the ellipse in gradient units (RMS gradient along each eigenvector)
+  const g1 = Math.sqrt(Math.max(0, t.l1) / t.wsum), g2 = Math.sqrt(Math.max(0, t.l2) / t.wsum);
+  const ang = Math.atan2(t.v1[1], t.v1[0]);
+  const ellipse = (c, r1, r2) => {
+    c.strokeStyle = color; c.lineWidth = 4;
+    c.beginPath(); c.ellipse(M, M, Math.max(r1, 2), Math.max(r2, 2), ang, 0, Math.PI * 2); c.stroke();
+  };
+  const c1 = cp.getContext('2d');
+  ellipse(c1, Math.min(1, g1 / MAXG) * M * 0.92, Math.min(1, g2 / MAXG) * M * 0.92);
+  const c2 = cg.getContext('2d');
+  c2.fillStyle = '#0c1118'; c2.fillRect(0, 0, S, S);
+  c2.strokeStyle = 'rgba(255,255,255,.28)'; c2.lineWidth = 1.5;
+  c2.beginPath(); c2.moveTo(0, M); c2.lineTo(S, M); c2.moveTo(M, 0); c2.lineTo(M, S); c2.stroke();
+  c2.fillStyle = 'rgba(255,255,255,.55)'; c2.font = '20px ui-sans-serif, system-ui';
+  c2.fillText('Ix →', S - 46, M - 8); c2.fillText('Iy ↓', M + 8, 22);
+  c2.fillStyle = 'rgba(245, 165, 36, .8)';
+  for (let j = -half; j <= half; j++) for (let i = -half; i <= half; i++) {
+    const k = (y0 + j) * an.w + (x0 + i);
+    c2.beginPath(); c2.arc(M + (an.grad.Ix[k] / MAXG) * M, M + (an.grad.Iy[k] / MAXG) * M, 5, 0, Math.PI * 2); c2.fill();
+  }
+  ellipse(c2, (g1 / MAXG) * M, (g2 / MAXG) * M);
+}
+
+// --- aperturelab ---------------------------------------------------------------
+/** Edge normal n (across the edge, the gradient direction) and tangent e (along it) at the anchor. */
+function apertureAxes(it) {
+  const t = it.data.t;
+  if (!t) return null;
+  const n = t.v1;
+  return { n, e: [-n[1], n[0]] };
+}
+
+function buildApertureLab(it) {
+  const d = it.data;
+  it.live.innerHTML = `
+    <canvas class="annot__apcanvas" width="${AP_SIZE * 2}" height="${AP_SIZE * 2}" tabindex="0" aria-label="Velocity space: drag the blue dot to set the true motion"></canvas>
+    <p class="annot__readout" data-r="ap"></p>`;
+  const cv = it.live.querySelector('canvas');
+  const set = (ev) => {
+    const r = cv.getBoundingClientRect(), k = (2 * AP_RANGE) / r.width;
+    const cl = (x) => Math.max(-AP_RANGE, Math.min(AP_RANGE, x));
+    d.vel = [cl((ev.clientX - r.left) * k - AP_RANGE), cl((ev.clientY - r.top) * k - AP_RANGE)];
+    updateApertureLab(it);
+    it.stage.redraw();
+  };
+  let drag = false;
+  cv.addEventListener('pointerdown', (ev) => { drag = true; cv.setPointerCapture(ev.pointerId); set(ev); });
+  cv.addEventListener('pointermove', (ev) => { if (drag) set(ev); });
+  cv.addEventListener('pointerup', () => { drag = false; cv.blur(); }); // give Space back to the story
+  it.live.addEventListener('keydown', (e) => e.stopPropagation());
+}
+
+function updateApertureLab(it) {
+  const d = it.data, ax = apertureAxes(it), cv = it.live.querySelector('.annot__apcanvas');
+  if (!ax || !cv) return;
+  if (!d.vel) d.vel = [ax.n[0] * 1.6 + ax.e[0] * 1.4, ax.n[1] * 1.6 + ax.e[1] * 1.4]; // starts with motion both across and along
+  const ctx = cv.getContext('2d'), S = cv.width, k = S / (2 * AP_RANGE), O = S / 2, P = ([u, v]) => [O + u * k, O + v * k];
+  const vn = d.vel[0] * ax.n[0] + d.vel[1] * ax.n[1], vt = d.vel[0] * ax.e[0] + d.vel[1] * ax.e[1];
+  const normal = [ax.n[0] * vn, ax.n[1] * vn];
+  ctx.fillStyle = '#0c1118'; ctx.fillRect(0, 0, S, S);
+  ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,.08)';
+  for (let i = -AP_RANGE; i <= AP_RANGE; i++) { ctx.beginPath(); ctx.moveTo(...P([i, -AP_RANGE])); ctx.lineTo(...P([i, AP_RANGE])); ctx.moveTo(...P([-AP_RANGE, i])); ctx.lineTo(...P([AP_RANGE, i])); ctx.stroke(); }
+  ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.beginPath(); ctx.moveTo(0, O); ctx.lineTo(S, O); ctx.moveTo(O, 0); ctx.lineTo(O, S); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = '22px ui-sans-serif, system-ui';
+  ctx.fillText('u →', S - 54, O - 8); ctx.fillText('v ↓', O + 8, 24);
+  ctx.strokeStyle = '#f5a524'; ctx.lineWidth = 3.5; ctx.setLineDash([14, 11]);   // every velocity on this line looks identical
+  const L = 2 * AP_RANGE + 2;
+  ctx.beginPath(); ctx.moveTo(...P([normal[0] - ax.e[0] * L, normal[1] - ax.e[1] * L])); ctx.lineTo(...P([normal[0] + ax.e[0] * L, normal[1] + ax.e[1] * L])); ctx.stroke();
+  ctx.setLineDash([]); ctx.lineWidth = 5;
+  arrow(ctx, O, O, ...P(normal), 14);
+  const [bx, by] = P(d.vel);
+  ctx.fillStyle = '#5ab8f5'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(bx, by, 14, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  const ap = it.live.querySelector('[data-r="ap"]');
+  const html = `${keyed('focus', 'drag the blue dot')} · dashed: ${keyed('warn', 'all look identical')}<br>${keyed('good', 'across')}: ${Math.abs(vn).toFixed(2)} px/frame · ${keyed('bad', 'along')}: ${Math.abs(vt).toFixed(2)} (invisible)`;
+  if (d.apHtml !== html) { ap.innerHTML = html; d.apHtml = html; }
+}
+
 // --- tensorlab -----------------------------------------------------------------
 function buildTensorLab(it) {
   const d = it.data;
@@ -889,6 +1025,7 @@ function buildTensorLab(it) {
       <label><span>threshold τ <output data-o="tau"></output></span><input type="range" data-i="tau" min="0.01" max="1" step="0.01" value="${d.tau}"></label>
     </div>
     <p class="annot__badge" data-r="badge"></p>
+    ${TENSOR_INSET}
     <table class="annot__table" data-r="table"></table>
     <p class="annot__readout">ellipse = gradient spread (∝√λ) · try a bigger window or τ</p>`;
   it.live.querySelectorAll('input[type=range]').forEach((inp) => {
@@ -900,10 +1037,21 @@ function buildTensorLab(it) {
 }
 
 function pickTensorLab(it, cls) {
-  const e = it.data.examples?.[cls];
-  if (e) it.data.auto = { x: e.x, y: e.y };
-  it.data.picked = cls;
-  computeTensorLab(it);
+  const d = it.data, e = d.examples?.[cls];
+  d.picked = cls;
+  cancelAnimationFrame(d.glide);
+  if (!e) { computeTensorLab(it); return; }
+  const from = d.auto, to = { x: e.x, y: e.y };
+  if (!from || !d.an || prefersReducedMotion()) { d.auto = to; computeTensorLab(it); return; }
+  // Glide the window to the new point (the ellipse, the dots and the numbers follow), instead of jumping.
+  const t0 = performance.now(), DUR = 750, ease = (k) => (k < 0.5 ? 2 * k * k : 1 - 2 * (1 - k) * (1 - k));
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / DUR), m = ease(k);
+    d.auto = { x: from.x + (to.x - from.x) * m, y: from.y + (to.y - from.y) * m };
+    computeTensorLab(it);
+    if (k < 1) d.glide = requestAnimationFrame(step);
+  };
+  d.glide = requestAnimationFrame(step);
 }
 
 function computeTensorLab(it) {
@@ -923,6 +1071,7 @@ function computeTensorLab(it) {
     <tr><th>${inline('$\\lambda_2$')}</th><td>${fmt(t.l2)}</td></tr>
     <tr><th>Shi–Tomasi ${inline('$\\lambda_{\\min}$')}</th><td>${fmt(t.l2)} ${t.l2 >= d.tau ? '≥' : '<'} τ = ${d.tau.toFixed(2)}</td></tr>
     <tr><th>Harris ${inline('$R$')}</th><td>${harrisText(harris(t.a, t.b, t.c, 0.05))}</td></tr>`;
+  drawTensorInset(it, d.an, a, d.half, t, { flat: '#cbd5e1', edge: '#f59e0b', corner: '#34d399' }[cls]);
   it.stage.redraw();
 }
 

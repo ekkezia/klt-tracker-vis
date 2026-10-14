@@ -46,6 +46,9 @@ const M = createMaterials(renderer);
 buildCity(data, scene, M, { shadows: renderer.shadowMap.enabled });
 const people = plan.walkers.map((w) => makePerson(w, M));
 people.forEach((p) => scene.add(p.group));
+// Clouds for the ending (the camera tilts up to the sky after the last chapter): only shown from skyStart.
+const clouds = makeClouds(plan);
+scene.add(clouds);
 const vehicles = plan.traffic.map((v) => makeVehicle(v, M));
 vehicles.forEach((v) => scene.add(v.group));
 const tarts = plan.shopFront ? makeEggTarts(plan, M) : null;
@@ -66,6 +69,7 @@ function setFrame(f) {
   sun.position.set(p.x - 60, 90, p.z + 40);
   people.forEach((pp) => pp.update(frame));
   vehicles.forEach((vv) => vv.update(frame));
+  clouds.visible = frame >= plan.keys.skyStart;
   tarts?.update(frame);
 }
 
@@ -169,6 +173,36 @@ function makePerson(w, M) {
       arms[0].rotation.x = -ph * 0.4; arms[1].rotation.x = ph * 0.4;
     },
   };
+}
+
+// --- clouds: soft puffs overhead, around where the camera ends up looking ----------------
+function makeClouds(plan) {
+  const g = new THREE.Group();
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d'), grad = x.createRadialGradient(64, 60, 4, 64, 64, 62);
+  grad.addColorStop(0, 'rgba(255,255,255,1)'); grad.addColorStop(0.45, 'rgba(255,255,255,.85)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = grad; x.fillRect(0, 0, 128, 128);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const r = rng(77), end = plan.frames[plan.frames.length - 1];
+  const fx = -Math.sin(end.yaw), fz = -Math.cos(end.yaw);              // where the camera looks (horizontally)
+  const dirAt = (az, el) => {                                           // az: sideways turn from the view, el: elevation (rad)
+    const ca = Math.cos(az), sa = Math.sin(az);
+    const hx = fx * ca - fz * sa, hz = fx * sa + fz * ca;
+    return [hx * Math.cos(el), Math.sin(el), hz * Math.cos(el)];
+  };
+  const puff = (c0, size, shade) => {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, opacity: 0.95, color: shade }));
+    s.position.set(...c0); s.scale.set(size, size * 0.62, 1); g.add(s);
+  };
+  const cloud = (az, el, R, size) => {
+    const d = dirAt(az, el), base = [end.x + d[0] * R, end.y + d[1] * R, end.z + d[2] * R];
+    for (let i = 0; i < 7; i++) puff([base[0] + (r() - 0.5) * size * 1.0, base[1] + (r() - 0.5) * size * 0.3, base[2] + (r() - 0.5) * size * 1.0],
+      size * (0.3 + r() * 0.35), r() < 0.45 ? 0xc9d5e5 : 0xffffff);   // some puffs a little shaded, so clouds have form
+  };
+  cloud(0, 1.12, 140, 75);                                             // right where the camera ends up
+  for (let i = 0; i < 18; i++) cloud((r() - 0.5) * 2.4, 0.4 + r() * 0.95, 120 + r() * 80, 35 + r() * 40);
+  g.visible = false;
+  return g;
 }
 
 // --- traffic: cars, vans, cyclists --------------------------------------------------

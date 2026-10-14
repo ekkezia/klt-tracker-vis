@@ -8,7 +8,7 @@
 // journey stops for it; steps without one are spread evenly between stops.
 
 /** Flatten chapters into steps: intro (the chapter brief), then one per dialogue line. */
-export function buildSteps(chapters, standIns = {}) {
+export function buildSteps(chapters, standIns = {}, { endFrame, revealFrame } = {}) {
   const cast = (id) => standIns[id] ?? id;
   const steps = [];
   for (const chapter of chapters) {
@@ -38,7 +38,8 @@ export function buildSteps(chapters, standIns = {}) {
   const lastStep = steps[steps.length - 1];
   steps.push({
     type: 'end', chapter: chapters[chapters.length - 1], call: null, topic: 'References',
-    from: lastStep.to, to: lastStep.to,
+    from: lastStep.to, to: endFrame ?? lastStep.to, // the footage tilts up to the sky, where the references appear
+    reveal: revealFrame ?? endFrame ?? lastStep.to, // ...fading in as soon as the camera is nearly up there
   });
   return steps;
 }
@@ -74,9 +75,10 @@ function planJourney(local, { start, end }) {
  *   - on-footage annotations from `line.focus` (once the footage has stopped)
  *   - voice-over, if available
  */
-export function createPlayer({ steps, state, stage, dialogue, annotations, voice, sfx }) {
+export function createPlayer({ steps, state, stage, dialogue, annotations, voice, sfx, onChapterEnd }) {
   let index = -1;
   let token = 0;
+  const recapped = new Set(); // chapters whose Article has already slid in once
 
   async function goTo(i, { travel = false, back = false } = {}) {
     const idx = Math.max(0, Math.min(steps.length - 1, i));
@@ -108,9 +110,14 @@ export function createPlayer({ steps, state, stage, dialogue, annotations, voice
     }
 
     annotations.clear();
-    if (travel && step.to > step.from) await stage.playSegment(step.from, step.to);
+    if (travel && step.to > step.from && step.type === 'end') {
+      const seg = stage.playSegment(step.from, step.to);
+      const watch = setInterval(() => { if (stage.frame >= step.reveal) { clearInterval(watch); if (my === token) dialogue.showEnd(); } }, 80);
+      await seg.finally(() => clearInterval(watch));
+    } else if (travel && step.to > step.from) await stage.playSegment(step.from, step.to);
     else await stage.hold(step.to);
     if (my !== token) return;
+    if (step.type === 'end') dialogue.showEnd();
     // Hold the overlay back until the character has finished talking (or the reader skips ahead).
     if (step.type === 'line') {
       await dialogue.whenSpoken(speaking);
@@ -128,6 +135,13 @@ export function createPlayer({ steps, state, stage, dialogue, annotations, voice
     goTo,
     next() {
       if (dialogue.skipReveal()) return;
+      // Past a chapter's last line: first let the Article (its notes and playgrounds) slide in, once per chapter.
+      const cur = steps[index], nxt = steps[index + 1];
+      if (onChapterEnd && cur?.type === 'line' && nxt && (nxt.type === 'intro' || nxt.type === 'end') && !recapped.has(cur.chapter.id)) {
+        recapped.add(cur.chapter.id);
+        onChapterEnd(cur.chapter);
+        return;
+      }
       if (index < steps.length - 1) goTo(index + 1, { travel: true });
     },
     prev: () => goTo(index - 1, { back: true }),

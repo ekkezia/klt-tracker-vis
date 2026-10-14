@@ -18,7 +18,7 @@ export async function loadTracks(url) {
     .then((r) => {
       if (!r.ok) throw new Error(`Track file ${url}: HTTP ${r.status}`);
       // Large track files ship gzipped (*.json.gz); the browser inflates them here.
-      if (url.endsWith('.gz')) return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json();
+      if (url.split('?')[0].endsWith('.gz')) return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json();
       return r.json();
     })
     .then((data) => validate(data, url));

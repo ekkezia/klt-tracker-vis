@@ -18,8 +18,21 @@ export function createTimeline(root, { steps, chapters, state, onSeek }) {
   const pos = (i) => (i / last) * 100;
   const chapterStart = chapters.map((c) => steps.findIndex((s) => s.type === 'intro' && s.chapter === c));
 
+  // Subtopics: a small tick where a chapter's topic changes, numbered within the chapter ("4: Replenish").
+  const subs = [], subOf = new Array(steps.length).fill(null);
+  for (const c of chapters) {
+    let n = 0, prev = c.title;
+    steps.forEach((s, i) => {
+      if (s.chapter !== c || s.type !== 'line') return;
+      if (s.topic !== prev) { n++; prev = s.topic; subs.push({ i, n, topic: s.topic }); }
+      subOf[i] = n ? { n, topic: prev } : null;
+    });
+  }
+  const tipText = (i) => { const sb = subOf[i], ch = steps[i].chapter; return sb ? `Ch ${ch.index} · ${sb.n}: ${sb.topic}` : `Ch ${ch.index} · ${ch.title}`; };
+
   root.innerHTML = `
     <div class="timeline__checkpoints">
+      ${subs.map((sb) => `<span class="tl-tick" style="--x:${pos(sb.i)}%" aria-hidden="true"></span>`).join('')}
       ${chapters.map((c, k) => `
         <button type="button" class="cp${pos(chapterStart[k]) > 96 ? ' cp--flip' : ''}" data-ch="${c.index}" style="--x:${pos(chapterStart[k])}%"
           aria-label="Chapter ${c.index}: ${c.title} (${c.place})">
@@ -44,6 +57,7 @@ export function createTimeline(root, { steps, chapters, state, onSeek }) {
   const tip = root.querySelector('.timeline__tip');
   const cps = [...root.querySelectorAll('.cp')];
   const dots = [...root.querySelectorAll('.cp__dot')];
+  const ticks = [...root.querySelectorAll('.tl-tick')];
   let current = 0;
 
   function render(i, preview = false) {
@@ -58,12 +72,13 @@ export function createTimeline(root, { steps, chapters, state, onSeek }) {
       d.classList.toggle('is-current', k === ch);
       d.classList.toggle('is-past', chapterStart[k] <= i);
     });
+    ticks.forEach((t, k) => t.classList.toggle('is-past', subs[k].i <= i));
     root.classList.toggle('is-previewing', preview);
   }
 
   function valueText(i) {
     const s = steps[i];
-    return `Chapter ${s.chapter.index}, ${s.chapter.place}: ${s.topic}`;
+    return `Chapter ${s.chapter.index}, ${s.chapter.place}: ${subOf[i] ? `${subOf[i].n}: ` : ''}${s.topic}`;
   }
 
   // --- state → view ----------------------------------------------------------
@@ -85,7 +100,7 @@ export function createTimeline(root, { steps, chapters, state, onSeek }) {
   function showTip(i, clientX) {
     const r = root.getBoundingClientRect();
     tip.hidden = false;
-    tip.textContent = `${steps[i].chapter.index} · ${steps[i].topic}`;
+    tip.textContent = tipText(i);
     const x = Math.min(r.width - tip.offsetWidth / 2 - 8, Math.max(tip.offsetWidth / 2 + 8, clientX - r.left));
     tip.style.left = `${x}px`;
   }

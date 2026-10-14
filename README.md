@@ -21,10 +21,10 @@ python3 tools/serve.py          # http://localhost:8000
 | `←` | previous line |
 | Timeline (bottom) | drag or click the rail to scrub (tooltip previews the topic); scroll/trackpad over it steps; click a checkpoint to jump to that chapter; when focused: `←`/`→` step, `PageUp`/`PageDown` chapter, `Home`/`End` |
 | `0`–`7` | jump to chapter |
-| `N` | Lab Notebook, opened at the section for the current line (also the "Lab notes §" button) |
+| `N` | Article, opened at the section for the current line (also the "Article §" button) |
 | `V` | sound (voice + phone effects) on/off |
 | `G` | greyscale footage: auto (grey while an overlay points at the footage) → always → off |
-| `Esc` | close notebook |
+| `Esc` | close the article |
 
 ## Voice-over (ElevenLabs)
 
