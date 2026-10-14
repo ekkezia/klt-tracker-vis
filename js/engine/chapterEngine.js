@@ -78,8 +78,14 @@ export function createPlayer({ steps, state, stage, dialogue, annotations, voice
   let index = -1;
   let token = 0;
 
-  async function goTo(i, { travel = false } = {}) {
+  async function goTo(i, { travel = false, back = false } = {}) {
     const idx = Math.max(0, Math.min(steps.length - 1, i));
+    // A chapter's intro step has nothing to say (the HUD names the chapter), so never rest on it:
+    // forward and jumps go straight to the first line; "back" steps over it to the previous chapter.
+    if (steps[idx].type === 'intro') {
+      if (!back) return goTo(idx + 1, { travel });
+      return idx > 0 ? goTo(idx - 1, { back }) : undefined;
+    }
     const step = steps[idx];
     const my = ++token;
     const prev = steps[index];
@@ -124,7 +130,7 @@ export function createPlayer({ steps, state, stage, dialogue, annotations, voice
       if (dialogue.skipReveal()) return;
       if (index < steps.length - 1) goTo(index + 1, { travel: true });
     },
-    prev: () => goTo(index - 1),
+    prev: () => goTo(index - 1, { back: true }),
     goToChapter(n) {
       const i = steps.findIndex((s) => s.type === 'intro' && s.chapter.index === n);
       if (i >= 0) goTo(i);
