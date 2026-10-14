@@ -1,7 +1,7 @@
 // Playground (Ch 5): the whole KLT loop, re-run in the browser on the last
 // N frames of footage with your parameters:
-//   detect (Shi–Tomasi, spacing) → track (pyramidal LK) → verify (forward–
-//   backward error, corner strength) → replenish.
+//   detect/replenish (Shi–Tomasi, spacing) → track (pyramidal LK) → verify
+//   (forward–backward error, corner strength).
 
 import { shell, slider, controls, crisp, palette } from './pg.js';
 import { toGray, gradients, minEigenMap, buildPyramid, lkPyramid } from '../lib/imageOps.js';
@@ -12,7 +12,7 @@ export function mountPipelinePlayground(el, api) {
   const root = shell(el, {
     id: 'pipe',
     title: 'Run the KLT loop yourself',
-    intro: 'The last 16 frames of footage, re-tracked in your browser with the four steps of the loop. Change the parameters and watch how many tracks survive, how many are dropped, and how many must be re-detected. (A short, plain re-implementation: no smoothing before gradients, so its errors run higher than OpenCV\'s in the HUD.)',
+    intro: 'The last 16 frames of footage, re-tracked in your browser with the three steps of the loop: detect/replenish, track, verify. Change the parameters and watch how many tracks survive, how many are dropped, and how many must be re-detected. (A short, plain re-implementation: no smoothing before gradients, so its errors run higher than OpenCV\'s in the HUD.)',
     body: `
   <div class="pg__row">
     <figure class="pg__fig pg__fig--wide"><canvas data-c="frame" aria-label="Last frame with tracks and trails"></canvas>
