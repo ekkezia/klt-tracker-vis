@@ -392,6 +392,7 @@ a { color: inherit; text-underline-offset: 2px; }
 .notebook .chip { background: none; color: var(--ink); border-color: var(--rule); backdrop-filter: none; }
 .notebook__head { display: flex; justify-content: space-between; align-items: start; gap: 1rem; padding: 1.25rem 1.5rem 1rem; border-bottom: 1px solid var(--rule); }
 .notebook__head h2 { margin: .2rem 0 0; font: 600 1.6rem/1.1 var(--serif); }
+<<<<<<< Updated upstream
 .notebook { transition: width .25s ease; }
 .notebook.notebook--article { width: min(62rem, 100vw); }
 .notebook__tabs { display: flex; gap: .25rem; padding: 0 1.5rem; border-bottom: 1px solid var(--rule); }
@@ -414,6 +415,8 @@ a { color: inherit; text-underline-offset: 2px; }
 .article p, .article li { color: var(--ink-2); }
 .article .art-see { background: none; border: 0; padding: 0; margin-top: .3rem; font: 600 .78rem var(--sans); color: var(--accent); cursor: pointer; }
 .article .art-see:hover { text-decoration: underline; }
+=======
+>>>>>>> Stashed changes
 .tag--muted { color: var(--muted); }
 .notebook__scroll { overflow-y: auto; padding: 1.25rem 1.5rem 4rem; font-family: system-ui, sans-serif; }
 .nb-section { border-top: 1px solid var(--rule); padding-top: 1rem; margin-top: 1.5rem; }
@@ -527,3 +530,102 @@ table { border-collapse: collapse; font-size: .9rem; }
 .stage.stage--grey video { filter: grayscale(1) contrast(1.08) brightness(.82); }
 #grey-toggle[data-mode="auto"] { color: var(--overlay-focus); border-color: color-mix(in srgb, var(--overlay-focus) 55%, transparent); }
 @media (prefers-reduced-motion: reduce) { .stage video { transition: none; } }
+<<<<<<< Updated upstream
+=======
+
+/* Line finished (shown + spoken): point the reader at Next. */
+.dialogue.is-ready #nav-next {
+  color: #032029; background: #22d3ee; border-color: #a5f3fc; font-weight: 700;
+  box-shadow: 0 0 14px 3px rgba(34, 211, 238, .75), 0 0 0 0 rgba(34, 211, 238, .7);
+  transform: scale(1.12);
+  animation: next-pulse 1.2s ease-out infinite;
+}
+.dialogue.is-ready #nav-next kbd { color: inherit; border-color: currentColor; }
+@keyframes next-pulse {
+  0% { box-shadow: 0 0 14px 3px rgba(34, 211, 238, .75), 0 0 0 0 rgba(34, 211, 238, .75); }
+  70% { box-shadow: 0 0 22px 6px rgba(34, 211, 238, .5), 0 0 0 16px rgba(34, 211, 238, 0); }
+  100% { box-shadow: 0 0 14px 3px rgba(34, 211, 238, .75), 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dialogue.is-ready #nav-next { animation: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--overlay-focus, #38bdf8) 45%, transparent); }
+}
+
+/* "Lab notes §i.j" link in the dialogue box -> the notebook section for this line */
+.dialogue__more {
+  position: absolute; left: 1.5rem; bottom: .45rem; display: inline-flex; align-items: center; gap: .35rem;
+  font: 600 .74rem var(--sans); letter-spacing: .02em; color: #0e7490; background: rgba(14, 116, 144, .08);
+  border: 1px solid rgba(14, 116, 144, .35); border-radius: 999px; padding: .15rem .6rem; cursor: pointer;
+}
+.dialogue__more:hover, .dialogue__more:focus-visible { background: rgba(14, 116, 144, .16); outline: none; }
+.dialogue__more svg { width: .85rem; height: .85rem; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
+.dialogue__more kbd { font-size: .62rem; padding: 0 .3em; border: 1px solid currentColor; border-radius: 3px; opacity: .7; }
+.dialogue__bubble { padding-bottom: 2.1rem; }
+/* The section opened from the dialogue flashes once. */
+.nb-section.is-target { animation: nb-target 2.2s ease-out; border-radius: 6px; }
+@keyframes nb-target { 0%, 35% { background: rgba(14, 116, 144, .12); box-shadow: 0 0 0 8px rgba(14, 116, 144, .12); } 100% { background: transparent; box-shadow: 0 0 0 8px transparent; } }
+
+/* --- Lab Notebook playgrounds (js/widgets/*Playground.js, pg.js) --- */
+.notebook__widget .pg { border: 1px solid var(--rule); border-top: 3px solid #0e7490; border-radius: 6px; padding: 1rem 1.1rem 1.1rem; background: color-mix(in srgb, var(--paper) 92%, #0e7490); }
+.pg .widget__kicker { color: #0e7490; }
+.pg__intro { font-size: .92rem; line-height: 1.5; margin: 0 0 .8rem; color: var(--ink-2, var(--ink)); }
+.pg__plot { display: block; width: 100%; height: auto; margin: .3rem 0; background: var(--paper); border: 1px solid var(--rule); border-radius: 4px; }
+.pg__row { display: flex; flex-wrap: wrap; gap: .75rem; align-items: flex-start; margin: .5rem 0; }
+.pg__fig { margin: 0; flex: 1 1 13rem; min-width: 0; }
+.pg__fig--wide { flex: 2 1 20rem; }
+.pg__fig--patch { flex: 0 0 auto; width: 96px; }
+.pg__fig canvas { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 4px; background: #111; cursor: crosshair; image-rendering: auto; }
+.pg__fig--patch canvas { image-rendering: pixelated; cursor: default; }
+.pg__fig figcaption { font-size: .72rem; line-height: 1.35; color: var(--muted); margin-top: .25rem; }
+.pg__row--patches { align-items: flex-start; }
+.pg__row--patches .pg__readout { flex: 1 1 12rem; }
+.pg__controls { display: flex; flex-wrap: wrap; gap: .6rem 1.4rem; align-items: flex-end; margin: .75rem 0 .5rem; font-size: .84rem; }
+.pg__ctl { display: grid; gap: .15rem; min-width: 10rem; }
+.pg__ctl output { font: .74rem var(--mono); color: var(--muted); margin-left: .25rem; }
+.pg__ctl input[type=range] { width: 100%; accent-color: #0e7490; }
+.pg__ctl--check { display: flex; gap: .4rem; align-items: center; min-width: 0; }
+.pg__buttons { display: flex; gap: .4rem; }
+.pg__readout { font-size: .84rem; margin-top: .4rem; }
+.pg__readout th { font-weight: 600; color: var(--muted); padding-right: 1rem !important; white-space: nowrap; }
+.pg__readout td { font: .82rem var(--mono); font-variant-numeric: tabular-nums; }
+.pg__verdict { margin: .4rem 0 0; font-size: .9rem; }
+.notebook .pg .key { cursor: default; }
+.notebook__playground + .notebook__playground { margin-top: 1.25rem; }
+
+/* dark simulation panels (aperture, test scene) */
+.pg__row--dark { background: #0b0f15; border-radius: 6px; padding: .6rem; }
+.pg__row--dark figcaption { color: #9aa4b2; }
+.pg__row--dark canvas { border-color: #1d2633; }
+.pg__readout--levels { width: 100%; margin-top: .6rem; }
+.pg__readout--levels th, .pg__readout--levels td { text-align: right; white-space: nowrap; }
+.pg__readout--levels th:first-child, .pg__readout--levels td:first-child { text-align: left; }
+.pg__summary { background: #0b0f15; color: #d6dde8; border-radius: 6px; padding: .3rem .6rem; margin-top: .6rem; }
+.pg__summary th { color: #8b95a5 !important; border: 0 !important; }
+.pg__summary td { border: 0 !important; color: #f1f5f9; }
+.pg__err[data-ok="true"] { color: #34d399; }
+.pg__err[data-ok="false"] { color: #f87171; }
+.pg .pg__buttons { flex-wrap: wrap; margin: .5rem 0; }
+
+/* --- maximised "Try it": the full playground over the footage --- */
+.annot__max { position: absolute; top: .4rem; right: .45rem; width: 1.5rem; height: 1.5rem; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--overlay-focus) 14%, transparent); color: var(--overlay-focus); border: 1px solid var(--overlay-focus); border-radius: 5px;
+  cursor: pointer; font-size: .9rem; line-height: 1; transform-origin: top right;
+  transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+  animation: annot-max-nudge 2.2s ease-in-out infinite; }
+/* Idle: a soft pulse and a little hop to say "open me". Hover / focus: it grows and holds still. */
+.annot__max:hover, .annot__max:focus-visible { animation: none; transform: scale(1.7); outline: none;
+  background: color-mix(in srgb, var(--overlay-focus) 35%, transparent); box-shadow: 0 0 14px color-mix(in srgb, var(--overlay-focus) 70%, transparent); }
+@keyframes annot-max-nudge {
+  0%, 55%, 100% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--overlay-focus) 65%, transparent); }
+  65% { transform: scale(1.25) translate(1px, -1px); }
+  80% { transform: scale(1); box-shadow: 0 0 0 9px transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .annot__max { animation: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--overlay-focus) 45%, transparent); } }
+.annot:has(.annot__max) .annot__title { padding-right: 1.9rem; }
+.tryit-max { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 2vh 2vw; background: rgba(5, 8, 12, .72); backdrop-filter: blur(3px); }
+.tryit-max__panel { width: min(64rem, 100%); max-height: 96vh; display: flex; flex-direction: column; background: var(--paper); color: var(--ink); color-scheme: light;
+  border-radius: 10px; border-top: 4px solid #0e7490; box-shadow: 0 24px 64px rgba(0, 0, 0, .5); font-family: system-ui, sans-serif; }
+.tryit-max__head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 1.2rem; border-bottom: 1px solid var(--rule); }
+.tryit-max__head h2 { margin: 0; font: 600 1.25rem var(--serif); }
+.tryit-max__close { background: none; border: 1px solid var(--rule); border-radius: 999px; padding: .25rem .8rem; font: 600 .78rem var(--sans); color: var(--ink); cursor: pointer; }
+.tryit-max__body { overflow-y: auto; padding: 1rem 1.2rem 1.5rem; }
+>>>>>>> Stashed changes

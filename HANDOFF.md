@@ -228,6 +228,7 @@ Outline chapters get a "draft" tag in the flight log; outline notebook sections 
   - the white box truck (Straus Square corner)
   - the dock (38 m into Seward Park)
 - **Chapter beats by frame (from `js/data/route.js`):** bakery 0–396 · sidewalk + Rutgers St 397–686 · truck 687–977 · plaza 978–1342 · Canal St dash 1343–2030 · park 2031–2577 · dock 2578–3039 · docked 3040–3123.
+- **Traffic** (`makeTraffic` in `sim/journey.js`, models in `makeVehicle` in `sim/main.js`): cars, vans and cyclists, each timed to pass the robot at a chosen frame (`pass`: in a lane of East Broadway or Rutgers/Essex St; `across`: cutting across the robot's way). They give the tracker motion that is not the robot's own. None are placed at the truck stop (Ch 2), where the view is the truck's side. Re-record after editing (see README: Footage), then re-run `tools/make_figures.py` and update Figure 4's caption numbers.
 - **Tracks** are real OpenCV KLT output (`tools/track_video.py`, 100 corners, FB check, `--min-eig` floor), so losses are genuine. They peak during the Canal St dash and at the truck.
 
 **The "white wall", on a street.** A neighbourhood rarely has a big blank wall, so Chapter 2 uses a **parked white box truck**. Its plain side panel is the flat case, its rub rail and box edges are the edge/aperture case, and its wheels, bumper and panel ends are corners. Other real-world equivalents, if you film:
