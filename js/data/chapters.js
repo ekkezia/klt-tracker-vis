@@ -111,7 +111,7 @@ export const chapters = [
     dialogue: [
       // OLD:
       // { topic: 'Mission briefing', ref: 'The tracking problem', hold: K.tartsView, speaker: 'wren', text: 'Good morning. I\'m Wren, a delivery robot. I\'m taking these egg tarts to my dock in Seward Park, finding my way with my camera alone.' },
-      { topic: 'Mission briefing', ref: 'The tracking problem', hold: K.tartsView, speaker: 'wren', text: 'Hello, I\'m Wren. I deliver egg tarts, and today I\'m finding my way to Seward Park using only my camera.' },
+      { topic: 'Mission briefing', ref: 'The tracking problem', hold: K.tartsView, speaker: 'wren', text: 'Hello, I\'m Wren. I\'m an autonomous robot who delivers egg tarts, and today I\'m finding my way to Seward Park using only my camera.' },
       // OLD:
       // { topic: 'Displacement between frames', ref: 'Why not just match descriptors?', speaker: 'wren', text: 'Between two frames, most points in view move only a few pixels. If I can measure that small shift for every point, I can work out how I moved.',
         // focus: { kind: 'flow', at: { track: 'auto' }, lag: 1, scale: 12, title: R`One point, one frame`, body: R`The {{focus|arrow}} is this point's displacement $\mathbf{d}$ from the previous frame to this one, drawn 12× longer.` },
