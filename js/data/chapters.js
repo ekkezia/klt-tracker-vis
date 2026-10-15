@@ -363,7 +363,7 @@ Whole window: $u^\star = +1$ ✓` },
         speaker: 'kanade', text: 'Instead of trying every shift, approximate the image as a straight line around the current guess. That gives a tiny two-by-two system.' },
       { hold: LK_FRAME,
         focus: { kind: 'lk', at: { track: 'auto', near: [300, 215] }, lag: 2, title: 'Lucas–Kanade on this corner (real pixels)', body: R`{{muted|Dashed}}: template. {{focus|Dots}}: each step. {{good|Green}}: result.` },
-        speaker: 'kanade', text: 'Its matrix is the very one from Dr Tomasi\'s test. That is why corners are easy to track. Watch the dots: each is one step, and green is the result.' },
+        speaker: 'kanade', text: 'Its matrix is the same one from Dr Tomasi\'s test. That is why corners are easy to track. Watch the dots: each is one step, and green is the result.' },
       // OLD:
       // { topic: 'Gauss–Newton iterations', ref: 'Gauss–Newton iteration', hold: LK_FRAME,
         // focus: { kind: 'lk', at: { track: 'auto', near: [300, 215] }, lag: 2, startOffset: [1.2, -0.9], inset: true, title: 'Step by step', body: R`Started from a deliberately wrong guess, 1.5 px from the answer. Watch the error image fade.` },
