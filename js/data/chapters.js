@@ -13,7 +13,8 @@
 //   status: 'written' | 'outline',
 //   clip: { id, start, end },              // inclusive frame range in that clip
 //   failure: { title, text },              // the chapter's problem (chapter brief; no longer shown in the UI)
-//   dialogue: [{ speaker, text, math?, event?, hold?, focus?, say?, topic?, ref? }],
+//   dialogue: [{ speaker, text, math?, event?, hold?, focus?, say?, topic?, ref?, loop? }],
+//      loop:   true | 'detect' | 'track' | 'verify' | 'replenish': shows the KLT-loop flowchart, lit at that step
 //      event:  { call: speakerId | [speakerId] } | { hangup: true }
 //      math:   optional derivation, shown on the footage as a "The math" card
 //      hold:   the frame the footage travels to and stops on for this line
@@ -400,32 +401,32 @@ Whole window: $u^\star = +1$ ✓` },
     dialogue: [
       // OLD:
       // { topic: 'Keeping a hundred points alive', ref: 'The KLT loop', speaker: 'wren', text: 'People cross my view and points leave the frame, yet I keep about a hundred tracks. How? I\'m calling Dr. Tomasi.', event: { call: 'tomasi' } },
-      { topic: 'Keeping a hundred points alive', ref: 'The KLT loop', speaker: 'wren', text: 'People cross my view and points leave the frame, yet I keep about a hundred tracks. How am I capable of that, Dr. Tomasi?', event: { call: 'tomasi' } },
+      { topic: 'Keeping a hundred points alive', ref: 'The KLT loop', loop: true, speaker: 'wren', text: 'People cross my view and points leave the frame, yet I keep about a hundred tracks. How am I capable of that, Dr. Tomasi?', event: { call: 'tomasi' } },
       // OLD:
       // { topic: 'Step 1 · Detect', ref: 'One frame of the loop', focus: { kind: 'heatmap', spacing: true, title: 'Detect', body: R`Strongest corners ({{heat|colour}}) first, a minimum distance from existing tracks ({{muted|dashed circles}}).` },
         // speaker: 'tomasi', text: 'Every frame runs the same four-step loop. First, **detect**: take the strongest corners, spaced apart.' },
-      { topic: 'Step 1 · Detect', ref: 'One frame of the loop',
+      { topic: 'Step 1 · Detect', ref: 'One frame of the loop', loop: 'detect',
         focus: { kind: 'heatmap', spacing: true, title: 'Detect', body: R`Strongest corners ({{heat|colour}}) first, a minimum distance from existing tracks ({{muted|dashed circles}}).` },
         speaker: 'tomasi', text: 'Every frame runs the same four-step loop. First, **detect**: take the strongest corners, shown in color.' },
-      {
+      { loop: 'detect',
         focus: { kind: 'heatmap', spacing: true, title: 'Detect', body: R`Strongest corners ({{heat|colour}}) first, a minimum distance from existing tracks ({{muted|dashed circles}}).` },
         speaker: 'tomasi', text: 'They must stay a minimum distance from existing tracks, the dashed circles, so they don\'t bunch up.' },
       // OLD:
       // { topic: 'Step 2 · Track', ref: 'One frame of the loop', focus: { kind: 'flowfield', lag: 4, scale: 3, title: 'Track', body: 'Every {{focus|arrow}} is one track\'s shift from pyramidal Lucas–Kanade.' },
         // speaker: 'tomasi', text: 'Second, **track** each one into the next frame with pyramidal Lucas–Kanade.' },
-      { topic: 'Step 2 · Track', ref: 'One frame of the loop',
+      { topic: 'Step 2 · Track', ref: 'One frame of the loop', loop: 'track',
         focus: { kind: 'flowfield', lag: 4, scale: 3, title: 'Track', body: 'Every {{focus|arrow}} is one track\'s shift from pyramidal Lucas–Kanade.' },
         speaker: 'tomasi', text: 'Second, **track**: every arrow is one point\'s shift into the next frame, found with pyramidal Lucas–Kanade.' },
       // OLD:
       // { topic: 'Step 3 · Verify', ref: 'One frame of the loop', hold: K.parkStart + 325, focus: { kind: 'fb', title: 'Verify', body: R`{{good|Ring}} radius = forward–backward error. Failed tracks are dropped ({{lost|red ×}}).` },
         // speaker: 'tomasi', text: 'Third, **verify**: drop any track that fails the forward–backward check or stops being a corner.' },
-      { topic: 'Step 3 · Verify', ref: 'One frame of the loop', hold: K.parkStart + 325,
+      { topic: 'Step 3 · Verify', ref: 'One frame of the loop', loop: 'verify', hold: K.parkStart + 325,
         focus: { kind: 'fb', title: 'Verify', body: R`{{good|Ring}} radius = forward–backward error. Failed tracks are dropped ({{lost|red ×}}).` },
         speaker: 'tomasi', text: 'Third, **verify**: a bigger ring means a bigger forward–backward error. A failed track gets a red cross and is dropped, and so does one that stopped being a good corner.' },
       // OLD:
       // { topic: 'Step 4 · Replenish', ref: 'One frame of the loop', hold: K.parkStart + 345, focus: { kind: 'replenish', lag: 12, title: 'Replenish', body: 'Last half second: {{lost|red ×}} where tracks were lost, {{fresh|green rings}} where new corners were found.' },
         // speaker: 'tomasi', text: 'Fourth, **replenish**: detect new corners wherever tracks were lost. A lost point never gets its old ID back.', event: { hangup: true } },
-      { topic: 'Step 4 · Replenish', ref: 'One frame of the loop', hold: K.parkStart + 345,
+      { topic: 'Step 4 · Replenish', ref: 'One frame of the loop', loop: 'replenish', hold: K.parkStart + 345,
         focus: { kind: 'replenish', lag: 12, title: 'Replenish', body: 'Last half second: {{lost|red ×}} where tracks were lost, {{fresh|green rings}} where new corners were found.' },
         speaker: 'tomasi', text: 'Fourth, **replenish**: red crosses show where tracks were lost, and green rings show new corners. A lost point never gets its old ID back. Read the article to follow the math.', event: { hangup: true } },
     ],

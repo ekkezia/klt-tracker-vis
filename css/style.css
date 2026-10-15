@@ -497,6 +497,20 @@ table { border-collapse: collapse; font-size: .9rem; }
 .annot__ti .annot__inset figcaption { max-width: 120px; }
 .annot--aperturelab { max-width: min(19rem, 80vw); }
 .annot__apcanvas { display: block; width: 150px; height: 150px; max-width: 100%; margin: .35rem 0; background: #0c1118; border-radius: 6px; cursor: grab; touch-action: none; }
+.annot--loop { max-width: 19rem; padding: .5rem .6rem .35rem; }
+.loop { display: block; width: 100%; height: auto; }
+.loop__node rect { fill: rgba(255, 255, 255, .05); stroke: rgba(255, 255, 255, .35); stroke-width: 1.4; transition: fill .3s, stroke .3s; }
+.loop__name { fill: #fff; font: 700 12px var(--sans); text-anchor: middle; }
+.loop__cnt { fill: var(--glass-muted); font: 11px var(--mono); text-anchor: middle; }
+.loop__arrow { fill: none; stroke: rgba(255, 255, 255, .55); stroke-width: 1.6; stroke-dasharray: 4 3; animation: loop-flow 1.2s linear infinite; }
+#loop-head path { fill: rgba(255, 255, 255, .7); }
+.loop__mid { fill: var(--glass-muted); font: 700 9px var(--sans); letter-spacing: .14em; text-transform: uppercase; }
+.loop__node.is-dim { opacity: .45; }
+.loop__node.is-on rect { fill: color-mix(in srgb, var(--overlay-focus) 22%, transparent); stroke: var(--overlay-focus); stroke-width: 2.4; filter: drop-shadow(0 0 7px var(--overlay-focus)); animation: loop-pulse 1.6s ease-in-out infinite; }
+.loop__node.is-on .loop__cnt { fill: #fff; }
+@keyframes loop-flow { to { stroke-dashoffset: -14; } }
+@keyframes loop-pulse { 50% { filter: drop-shadow(0 0 13px var(--overlay-focus)); } }
+@media (prefers-reduced-motion: reduce) { .loop__arrow, .loop__node.is-on rect { animation: none; } }
 .annot--pyramidlab { max-width: min(26rem, 80vw); }
 .annot--tensorlab { max-width: min(22rem, 80vw); }
 .annot__lab { display: grid; grid-template-columns: 1fr 1fr; gap: .2rem .8rem; margin: .3rem 0; }
