@@ -486,7 +486,7 @@ Whole window: $u^\star = +1$ ✓` },
   {
     id: 'debrief',
     index: 7,
-    title: 'Strengths, limits and what came next',
+    title: 'Discussion',
     short: 'Debrief',
     icon: 'notebook',
     place: 'Docked in Seward Park',
