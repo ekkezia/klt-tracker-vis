@@ -162,7 +162,7 @@ export const chapters = [
       { topic: 'The three assumptions', ref: 'The three assumptions',
         focus: { kind: 'patches', at: { track: 'auto', near: [700, 150] }, maps: ['prev', 'next'], lag: 1, title: 'Same patch, two frames', body: R`Left: the window around {{focus|this dot}} in the previous frame. Right: the window at its new position. The pixel values barely change.` },
         math: R`**Brightness constancy:** $I(x{+}u,\ y{+}v,\ t{+}1) = I(x,\ y,\ t)$. The shift $(u, v)$ is the **optical flow**.`,
-        speaker: 'kanade', text: 'Everything we do rests on three assumptions. One: a point keeps its brightness as it moves. Two: it moves only a little between frames. Three: its neighbors move with it.' },
+        speaker: 'kanade', text: 'Optical flow rests on three assumptions. One: a point keeps its brightness as it moves. Two: it moves only a little between frames. Three: its neighbors move with it.' },
       // OLD:
       // { topic: 'The optical flow constraint', ref: 'Linearising: the optical flow constraint',
         // focus: { kind: 'patches', at: { track: 'auto', near: [700, 150] }, maps: ['Ix', 'Iy', 'It'], lag: 1, title: 'The three terms', body: R`Gradients across ($I_x$), down ($I_y$) and over time ($I_t$) around {{focus|one dot}}.` },
