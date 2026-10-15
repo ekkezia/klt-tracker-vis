@@ -171,6 +171,12 @@ export function mountPipelinePlayground(el, api) {
   }
 
   load();
-  const off = api.stage.onFrame(() => { if (!loading && api.stage.frame !== F) load(); });
-  return () => off();
+  // Follow the story's frame, but only once it has come to rest and only while this playground is on screen:
+  // grabbing frames seeks the shared video, which must never happen while the story is playing footage.
+  let settle = 0;
+  const off = api.stage.onFrame(() => {
+    clearTimeout(settle);
+    settle = setTimeout(() => { if (!loading && el.isConnected && el.offsetParent && api.stage.frame !== F) load(); }, 500);
+  });
+  return () => { off(); clearTimeout(settle); };
 }

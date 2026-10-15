@@ -11,9 +11,55 @@ import { prefersReducedMotion } from '../config.js';
 export const sectionNumbers = (chapters) => new Map(chapters.flatMap((c) =>
   c.notebook.map((s, j) => [`${c.id}|${s.title}`, `${c.index}.${j + 1}`])));
 
+/**
+ * Turn bracketed citations in the article text, e.g. "(Shi & Tomasi, 1994)", "(Lucas & Kanade 1981; Tomasi & Kanade 1991)",
+ * "Harris and Stephens (1988)", into links to their entry in References. A citation matches a reference when its year
+ * and an author surname both appear in the reference's `source`; anything that matches nothing stays plain text.
+ */
+function linkCitations(root, references) {
+  const names = (s) => (s.match(/\b[A-Z][a-zà-ÿ'’]+(?:-[A-Z][a-zà-ÿ'’]+)?\b/g) ?? []).filter((w) => !['Part', 'Automatic', 'Learning'].includes(w));
+  const years = (s) => s.match(/\b(?:19|20)\d{2}\b/g) ?? [];
+  const index = references.map((r, i) => ({ n: i + 1, names: names(r.source), years: years(r.source) }));
+  const find = (text, context = '') => {
+    const ys = years(text), ns = names(text).concat(names(context));
+    let best = null;
+    for (const r of index) {
+      if (!ys.some((y) => r.years.includes(y))) continue;
+      const hits = ns.filter((n) => r.names.includes(n)).length;
+      if (hits && (!best || hits > best.hits)) best = { n: r.n, hits };
+    }
+    return best?.n ?? null;
+  };
+  const link = (n, text) => `<a class="cite" href="#ref-${n}" data-ref="${n}" title="Go to reference ${n}">${text}</a>`;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (t) => (t.parentElement.closest('.katex, code, a, .nb-reflist, .nb-chapter__head, h4, button') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+  });
+  const nodes = [];
+  for (let t = walker.nextNode(); t; t = walker.nextNode()) if (/\((?:[^()]*?\b)?(?:19|20)\d{2}/.test(t.data)) nodes.push(t);
+  for (const t of nodes) {
+    let changed = false;
+    // Escape for HTML only at the end: "&amp;" would otherwise look like a ";" separator between citations.
+    const html = t.data.replace(/[&<>]/g, (c) => ({ '&': '\u0001', '<': '\u0002', '>': '\u0003' }[c]))
+      .replace(/\(([^()]*?\b(?:19|20)\d{2}[^()]*?)\)/g, (whole, inner, at, str) => {
+        const parts = inner.split(/;\s*/).map((part) => {
+          const before = /^\s*(?:19|20)\d{2}\s*$/.test(part) ? str.slice(Math.max(0, at - 60), at) : ''; // "Shi and Tomasi (1994)"
+          const n = find(part, before);
+          if (n) changed = true;
+          return n ? link(n, part) : part;
+        });
+        return `(${parts.join('; ')})`;
+      })
+      .replace(/\u0001/g, '&amp;').replace(/\u0002/g, '&lt;').replace(/\u0003/g, '&gt;');
+    if (!changed) continue;
+    const span = document.createElement('span');
+    span.innerHTML = html;
+    t.replaceWith(...span.childNodes);
+  }
+}
+
 const attr = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 
-export function createNotebook(root, state, api, { chapters, onGoToChapter, onGoToRef }) {
+export function createNotebook(root, state, api, { chapters, references = [], onGoToChapter, onGoToRef }) {
   const body = root.querySelector('[data-nb="body"]');
   const nav = root.querySelector('[data-nb="nav"]');
   const scroller = root.querySelector('.notebook__scroll');
@@ -28,7 +74,8 @@ export function createNotebook(root, state, api, { chapters, onGoToChapter, onGo
   function build() {
     if (built) return;
     built = true;
-    nav.innerHTML = chapters.map((c) => `<button type="button" data-go="${c.id}" title="${attr(c.title)}"><b>${c.index}</b> ${c.short}</button>`).join('');
+    nav.innerHTML = chapters.map((c) => `<button type="button" data-go="${c.id}" title="${attr(c.title)}"><b>${c.index}</b> ${c.short}</button>`).join('')
+      + '<button type="button" data-go="refs" title="References">References</button>';
     body.innerHTML = chapters.map((c) => `
       <section class="nb-chapter" data-ch="${c.id}">
         <header class="nb-chapter__head">
@@ -46,7 +93,14 @@ export function createNotebook(root, state, api, { chapters, onGoToChapter, onGo
             ${render(sec.body)}
             <button type="button" class="nb-see" data-see="${attr(`${c.id}|${sec.title}`)}" data-play="${c.index}">▶ See this in the story</button>
           </section>`).join('')}
-      </section>`).join('');
+      </section>`).join('') + `
+      <section class="nb-chapter nb-refs" data-ch="refs">
+        <header class="nb-chapter__head"><div><p class="kicker">Sources</p><h3>References</h3></div></header>
+        <ol class="nb-reflist">${references.map((r, i) => `
+          <li id="ref-${i + 1}">${r.url ? `<a href="${attr(r.url)}" target="_blank" rel="noopener">${r.label}</a>` : `<cite>${r.label}</cite>`}
+            <span class="ref-source">${r.source}</span></li>`).join('')}</ol>
+      </section>`;
+    linkCitations(body, references);
     markHere();
     if ('IntersectionObserver' in window) {
       const io = new IntersectionObserver((entries) => entries.forEach((e) => {
@@ -73,7 +127,8 @@ export function createNotebook(root, state, api, { chapters, onGoToChapter, onGo
     const cur = state.get().chapter?.id;
     body.querySelectorAll('.nb-chapter').forEach((el) => {
       el.classList.toggle('is-here', el.dataset.ch === cur);
-      el.querySelector('.nb-here').hidden = el.dataset.ch !== cur;
+      const here = el.querySelector('.nb-here');
+      if (here) here.hidden = el.dataset.ch !== cur;
     });
   }
 
@@ -135,6 +190,13 @@ export function createNotebook(root, state, api, { chapters, onGoToChapter, onGo
   root.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } });
 
   root.addEventListener('click', (e) => {
+    const cite = e.target.closest('a.cite');
+    if (cite) { // in-text citation -> its entry in References, flashed
+      e.preventDefault();
+      const li = body.querySelector(`#ref-${cite.dataset.ref}`);
+      if (li) { li.scrollIntoView({ block: 'center' }); li.classList.remove('is-target'); void li.offsetWidth; li.classList.add('is-target'); spyNow(); }
+      return;
+    }
     const go = e.target.closest('[data-go]');
     if (go) { scrollToChapter(go.dataset.go); return; }
     const see = e.target.closest('[data-see]');

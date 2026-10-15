@@ -121,7 +121,7 @@ export function createStage(root, state, clips) {
       video.pause();
       seekTo(mode.frame);
     } else if (mode.kind === 'segment') {
-      if (shown !== mode.from || video.seeking) seekTo(mode.from);
+      if (shown < mode.from || shown >= mode.to || video.seeking) seekTo(mode.from); // else carry on from where it is
       video.play().catch(() => arrive(mode.to)); // can't play: jump to the destination
       tick();
     } else {
@@ -262,6 +262,7 @@ export function createStage(root, state, clips) {
     if (busy) return busy.then(() => grabFramesAt(frames));
     busy = (async () => {
       video.pause();
+      const back = shown; // where the story was: return there afterwards, so a playing segment carries on
       const out = [];
       for (const f of frames) {
         if (!Number.isFinite(f) || !Number.isFinite(fps)) { out.push(null); continue; } // never seek to NaN: it would stall the queue
@@ -272,6 +273,14 @@ export function createStage(root, state, clips) {
           video.currentTime = (f + 0.5) / fps;
         });
         out.push(grabFrame());
+      }
+      if (Number.isFinite(back) && back >= 0) {
+        await new Promise((res) => {
+          const done = () => { video.removeEventListener('seeked', done); res(); };
+          video.addEventListener('seeked', done);
+          seeking = true;
+          video.currentTime = (back + 0.5) / fps;
+        });
       }
       return out;
     })();

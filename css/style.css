@@ -421,6 +421,13 @@ a { color: inherit; text-underline-offset: 2px; }
 .nb-see { display: inline-block; margin-top: .6rem; color: var(--accent); border-color: transparent; padding-left: 0; }
 .nb-play:hover, .nb-see:hover { text-decoration: underline; }
 .nb-section { scroll-margin-top: 4.6rem; }
+.notebook a.cite { color: var(--accent); text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; }
+.notebook a.cite:hover { text-decoration-style: solid; }
+.nb-reflist { margin: 1rem 0 0; padding-left: 1.6rem; display: grid; gap: .55rem; }
+.nb-reflist li { color: var(--ink-2); line-height: 1.45; scroll-margin: 6rem; border-radius: 6px; }
+.nb-reflist a { color: var(--ink); text-underline-offset: 3px; }
+.nb-reflist .ref-source { display: block; font-size: .85rem; color: var(--muted); }
+.nb-reflist li.is-target { animation: nb-target 2.2s ease-out; }
 .nb-num { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: .3rem; }
 .notebook__widget { margin-top: 1rem; }
 .nb-section { border-top: 1px solid var(--rule); padding-top: 1rem; margin-top: 1.5rem; }

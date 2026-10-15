@@ -293,7 +293,7 @@ Whole window: $u^\star = +1$ ✓` },
     dialogue: [
       // OLD:
       // { topic: 'Motion too large to linearise', ref: 'Image pyramids: coarse-to-fine tracking', speaker: 'wren', text: 'I\'m crossing Canal Street fast, and I\'m losing tracks. I\'m calling Dr. Kanade.', event: { call: 'kanade' } },
-      { topic: 'Motion too large to linearise', ref: 'Image pyramids: coarse-to-fine tracking', speaker: 'wren', text: 'I\'m hurrying across Canal Street and my points keep getting lost. Dr. Kanade, whyyy?', event: { call: 'kanade' } },
+      { topic: 'Motion too large to linearise', ref: 'Image pyramids: coarse-to-fine tracking', speaker: 'wren', text: 'I\'m hurrying across Canal Street and my points keep getting lost. Dr. Kanade, why?', event: { call: 'kanade' } },
       // OLD:
       // { topic: 'Image pyramids', ref: 'Image pyramids: coarse-to-fine tracking', hold: K.sprintStart + 26,
         // focus: { kind: 'pyramidlab', widget: ['pyramid-synth', 'pyramid'], at: { track: 'fastest' }, title: 'Try it: how far can one step reach?', body: R`Drag **frame gap** to make this point move farther, and **pyramid levels** to see how coarser levels shrink the shift.` },

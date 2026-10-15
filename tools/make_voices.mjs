@@ -82,6 +82,20 @@ function speakable(text) {
  * (eleven_multilingual_v2 supports them). Only after punctuation followed by a space, so "0.5" and "e.g." are left alone.
  */
 const PAUSE = { sentence: 0.55, colon: 0.35, comma: 0.25 };
+
+/**
+ * How names are said. The voices read "Kanade" and "Tomasi" the American way, so the spoken text spells them out:
+ * Kanade as in Japanese (ka-na-de), Tomasi as in Spanish/Italian (to-MA-si). "Dr." is said as "Doctor", which also
+ * stops the period from being read as the end of a sentence (and getting a pause).
+ */
+const SAY = [
+  [/\bDr\.\s*/g, 'Doctor '],
+  [/\bKanade\b/g, 'Kah-nah-deh'],
+  [/\bTomasi\b/g, 'Toh-mah-see'],
+  [/\be\.g\.\s*/g, 'for example '],
+  [/\bi\.e\.\s*/g, 'that is '],
+];
+const sayNames = (text) => SAY.reduce((t, [re, to]) => t.replace(re, to), text);
 function withPauses(text) {
   const brk = (s) => ` <break time="${s}s" />`;
   return text
@@ -171,7 +185,7 @@ async function main() {
       if (!voice) return; // e.g. the flight log is not voiced
       if (SPEAKERS && !SPEAKERS.includes(speaker)) return;
       const { spoken, mathy } = line.say ? { spoken: line.say, mathy: false } : speakable(line.text);
-      jobs.push({ key: `${ch.id}:${i}`, ch, i, speaker, voice, text: withPauses(spoken), warn: mathy });
+      jobs.push({ key: `${ch.id}:${i}`, ch, i, speaker, voice, text: withPauses(sayNames(spoken)), warn: mathy });
     });
   }
 
