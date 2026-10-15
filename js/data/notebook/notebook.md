@@ -78,10 +78,10 @@ We write $\mathbf{d} = (u, v)$ for the flow of a point. When tracking is posed a
 *Level: story*
 
 Optical flow is the apparent motion of image brightness between consecutive frames. Estimating it relies on three assumptions:
+
 1. **Brightness constancy**: a point looks the same in both frames (at a new location).
 2. **Small motion**: the shift is small enough for the linear approximation.
 3. **Spatial coherence**: all pixels in the window move together.
-
 
 ### Brightness constancy
 
@@ -107,7 +107,7 @@ Substituting into brightness constancy and cancelling $I(x, y, t)$:
 
 $$I_x u + I_y v + I_t = 0 \quad\Longleftrightarrow\quad \nabla I^\top \mathbf{d} = -I_t.$$
 
-One equation, two unknowns $(u, v)$ per pixel. 
+One equation, two unknowns $(u, v)$ per pixel.
 
 **Note:** dropping the higher-order terms is fine only when $\mathbf{d}$ is small relative to the scale over which $\nabla I$ changes. As a rule of thumb, motions above 1–2 px need the pyramid of Chapter 3.
 
@@ -123,7 +123,7 @@ The least-squares solution satisfies the normal equations
 
 $$\underbrace{A^\top A}_{H}\,\mathbf{d} = \underbrace{-A^\top \mathbf{I}_t}_{\mathbf{b}}, \qquad H = \sum_{\mathcal{W}} \begin{bmatrix} I_x^2 & I_x I_y \\ I_x I_y & I_y^2 \end{bmatrix}, \quad \mathbf{b} = -\sum_{\mathcal{W}} \begin{bmatrix} I_x I_t \\ I_y I_t \end{bmatrix}.$$
 
-So $H\mathbf{d} = \mathbf{b}$: a $2 \times 2$ system per feature. 
+So $H\mathbf{d} = \mathbf{b}$: a $2 \times 2$ system per feature.
 
 Choosing the window size is a trade-off: larger windows average out noise and handle bigger motion, but are more likely to violate coherence.
 
@@ -140,7 +140,6 @@ Frames $f_1 = [0,0,0,9,0,0,0]$ and $f_2 = [0,0,0,0,9,0,0]$.
 Central differences on $f_1$: $I_x[i] = (f_1[i{+}1] - f_1[i{-}1]) / 2$.
 
 Time difference $I_t[i] = f_2[i] - f_1[i]$.
-
 
 | $i$ | $I_x$ | $I_t$ | pointwise $u = -I_t/I_x$ | $I_x I_t$ | $I_x^2$ |
 | --- | --- | --- | --- | --- | --- |
@@ -395,6 +394,7 @@ For every frame, a KLT tracker runs the pieces built in the previous chapters as
    $$\mathbf{d}_i = \arg\min_{\mathbf{d}} \sum_{\mathcal{W}} [I_{k+1}(\mathbf{x} + \mathbf{d}) - I_k(\mathbf{x})]^2$$
    with pyramidal Lucas–Kanade (Ch 3–4), starting from an initial guess: zero, the last velocity, or a gyroscope prediction.
 3. **Verify.** Drop tracks that fail a check (Ch 3–4): forward–backward error above $\theta_{FB}$, residual per pixel above $\theta_E$, $\lambda_{\min}(H)$ below $\tau$, no convergence, or the window leaving the image.
+
 Detection is the expensive step, so it runs only when needed; tracking is cheap and runs on every point every frame.
 
 ### Parameters that matter
@@ -454,7 +454,7 @@ A tracker is rarely the end goal. Its output, a set of points and how they moved
 
 All three depend on how the camera's motion produces the image motion that KLT measures.
 
-### Visual odometry (outline)
+### Visual odometry
 
 *Level: math*
 
@@ -466,7 +466,7 @@ $$\begin{bmatrix} u \\ v \end{bmatrix} = \frac{1}{Z}\begin{bmatrix} -1 & 0 & x \
 - Rotation moves every point regardless of depth; translation moves near points more. Pure forward motion radiates from the **focus of expansion**.
 - Monocular VO: estimate the essential matrix from tracks with RANSAC, recover $R, \mathbf{t}$ up to scale; VIO fixes scale with the IMU.
 
-### Expansion and time-to-contact (outline)
+### Expansion and time-to-contact
 
 *Level: math*
 
@@ -476,7 +476,7 @@ When the robot drives towards a surface, the tracks on it spread apart. How fast
 - For an object region: $\tau \approx 2 / \operatorname{div}(\mathbf{u})$ for a fronto-parallel surface, or from the growth rate of the spread $s$ of its tracks, $\tau \approx s / \dot s$.
 - Tracks that disagree with the ego-motion model (RANSAC outliers) belong to independently moving objects.
 
-### Image-based visual servoing (outline)
+### Image-based visual servoing
 
 *Level: math*
 
