@@ -13,8 +13,8 @@
 //           'fb'         forward–backward error ring on every track (scale, labels)
 //           'replenish'  tracks lost (×) and corners detected (rings) in the last `lag` frames
 //           'pyramid'    inset: the anchored track's motion at pyramid levels 0..3
-//           'loop'       the KLT loop flowchart (Detect > Track > Verify > Replenish) with `step` lit and
-//                        this frame's real counts under each box (step: 'detect'|'track'|'verify'|'replenish'|null)
+//           'loop'       the KLT loop flowchart (Detect/replenish > Track > Verify, as in the article's Figure 5) with `step` lit
+//                        and this frame's real counts under each box (step: 'detect'|'track'|'verify'|null)
 //           'aperturelab' interactive: drag the true motion in velocity space; only the part across the
 //                        real edge under the anchor is measurable (normal flow)
 //           'tensorlab'  interactive: Flat / Edge / Corner presets plus window-size and
@@ -564,22 +564,22 @@ const KINDS = {
   loop: {
     init(it) {
       const box = ([x, y], key, label) => `<g class="loop__node" data-n="${key}" transform="translate(${x} ${y})">
-        <rect width="124" height="46" rx="10"/><text class="loop__name" x="62" y="19">${label}</text><text class="loop__cnt" x="62" y="37" data-c="${key}"></text></g>`;
+        <rect width="132" height="46" rx="10"/><text class="loop__name" x="66" y="19">${label}</text><text class="loop__cnt" x="66" y="37" data-c="${key}"></text></g>`;
       const arrow = (d) => `<path class="loop__arrow" d="${d}" marker-end="url(#loop-head)"/>`;
-      it.live.innerHTML = `<svg class="loop" viewBox="0 0 300 150" role="img" aria-label="The KLT loop: detect, track, verify, replenish, repeated every frame">
+      // As in the article's Figure 5: detect/replenish -> track -> verify, round again every frame.
+      it.live.innerHTML = `<svg class="loop" viewBox="0 0 300 150" role="img" aria-label="The KLT loop: detect or replenish, track, verify, repeated every frame">
         <defs><marker id="loop-head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
-        ${arrow('M142 28H156')}${arrow('M218 52V78')}${arrow('M158 126H144')}${arrow('M82 98V72')}
-        ${box([12, 6], 'detect', '1 Detect')}${box([164, 6], 'track', '2 Track')}${box([164, 98], 'verify', '3 Verify')}${box([12, 98], 'replenish', '4 Replenish')}
-        <text class="loop__mid" x="150" y="80" text-anchor="middle">every frame</text></svg>`;
+        ${arrow('M122 54Q138 32 160 32')}${arrow('M226 54V94')}${arrow('M160 120Q112 124 96 102')}
+        ${box([8, 54], 'detect', '1 Detect / replenish')}${box([160, 8], 'track', '2 Track')}${box([160, 98], 'verify', '3 Verify')}
+        <text class="loop__mid" x="78" y="30" text-anchor="middle">every frame</text></svg>`;
     },
     onFrame(it, stage) {
       const pts = stage.tracks?.frames?.[stage.frame];
       if (!pts) return;
       const st = frameStats(pts), set = (k, t) => { const el = it.live.querySelector(`[data-c="${k}"]`); if (el) el.textContent = t; };
-      set('detect', `${st.fresh} new corner${st.fresh === 1 ? '' : 's'}`);
+      set('detect', `${st.fresh} new · ${st.active} tracks`);
       set('track', `${st.tracked + st.lost} tracked in`);
       set('verify', `${st.lost} dropped`);
-      set('replenish', `${st.active} tracks now`);
       const on = it.spec.step ?? null;
       it.live.querySelectorAll('.loop__node').forEach((g) => { g.classList.toggle('is-on', on === g.dataset.n); g.classList.toggle('is-dim', on != null && on !== g.dataset.n); });
     },
