@@ -79,6 +79,9 @@ export function createPlayer({ steps, state, stage, dialogue, annotations, voice
   let index = -1;
   let token = 0;
   const recapped = new Set(); // chapters whose Article has already slid in once
+  let prevRang = false;       // did the previous step show the ringing state?
+  let rangOnce = false;       // only the first call rings; later ones connect straight away
+  const heard = new Set();    // steps already spoken in full: coming back to them shows everything at once
 
   async function goTo(i, { travel = false, back = false } = {}) {
     const idx = Math.max(0, Math.min(steps.length - 1, i));
@@ -94,22 +97,30 @@ export function createPlayer({ steps, state, stage, dialogue, annotations, voice
     index = idx;
     const { chapter } = step;
     sfx?.stop();
+    const again = heard.has(idx); // been here before: no waiting for the voice
 
     await stage.setClip(chapter.clip.id);
     stage.setScene(chapter.scene, [chapter.clip.start, chapter.clip.end]);
-    dialogue.show(step);
-    state.set({ stepIndex: idx, step, chapter, call: step.call, callState: step.ringing ? 'ringing' : 'connected' });
-    const speaking = voice?.play(step) ?? null;
-    dialogue.talk(speaking);
+    dialogue.show(step, { instant: again });
+    const ringing = Boolean(step.ringing) && !rangOnce;
+    if (step.ringing) rangOnce = true;
+    const justRang = prevRang;
+    prevRang = ringing;
+    state.set({ stepIndex: idx, step, chapter, call: step.call, callState: ringing ? 'ringing' : 'connected' });
+    const speaking = again ? (voice?.stop?.(), null) : voice?.play(step) ?? null;
+    if (!again) dialogue.talk(speaking);
     // Phone: ring once Wren has said "Calling…"; chirp when the doctor picks up.
-    if (step.ringing && voice?.soundOn) {
+    if (ringing && voice?.soundOn) {
       // Keeps ringing until the reader moves on and the doctor picks up.
       (speaking ?? new Promise((r) => setTimeout(r, 900))).then(() => { if (my === token) sfx?.ringLoop(); });
-    } else if (prev?.ringing && step.call && travel && voice?.soundOn) {
+    } else if (justRang && step.call && travel && voice?.soundOn && !again) {
       sfx?.connect();
     }
 
     annotations.clear();
+    // The KLT-loop flowchart does not need the footage to have stopped or the line to be finished: up straight away.
+    const early = step.line?.loop != null ? [{ kind: 'loop', title: 'The KLT loop', step: step.line.loop === true ? null : step.line.loop }] : [];
+    if (early.length) annotations.show(early);
     if (travel && step.to > step.from && step.type === 'end') {
       const seg = stage.playSegment(step.from, step.to);
       const watch = setInterval(() => { if (stage.frame >= step.reveal) { clearInterval(watch); if (my === token) dialogue.showEnd(); } }, 80);
@@ -119,15 +130,16 @@ export function createPlayer({ steps, state, stage, dialogue, annotations, voice
     if (my !== token) return;
     if (step.type === 'end') dialogue.showEnd();
     // Hold the overlay back until the character has finished talking (or the reader skips ahead).
-    if (step.type === 'line') {
+    if (step.type === 'line' && !again) {
       await dialogue.whenSpoken(speaking);
       if (my !== token) return;
     }
+    if (step.type === 'line') heard.add(idx);
     // A line's `math` note is shown on the footage as a floating card.
     const math = step.line?.math ? [{ kind: 'card', title: 'The math', body: step.line.math }] : [];
     const focus = [].concat(step.line?.focus ?? []);
-    if (step.line?.loop != null) focus.unshift({ kind: 'loop', title: 'The KLT loop', step: step.line.loop === true ? null : step.line.loop }); // flowchart of the pipeline, lit at this step
-    annotations.show(focus.length || math.length ? [...focus, ...math] : null);
+    if (focus.length || math.length) annotations.show([...focus, ...math], { keep: early.length > 0 });
+    else if (!early.length) annotations.show(null);
     dialogue.markReady();
   }
 

@@ -187,12 +187,14 @@ export function createAnnotations(layer, stage, { getSafeRect, onFocus, getWidge
   ro.observe(layer);
   document.querySelectorAll('[data-annot-avoid]').forEach((el) => ro.observe(el));
 
-  function show(focus) {
-    clear();
+  /** Show these cards, replacing what is up; with `keep`, add to the cards already on screen instead. */
+  function show(focus, { keep = false } = {}) {
+    if (!keep) clear();
     const list = focus == null ? [] : [].concat(focus);
-    const my = ++token;
-    onFocus?.(list);
-    items = list.map((spec) => {
+    if (keep && !list.length) return;
+    const my = keep ? token : ++token;
+    onFocus?.([...(keep ? items.map((i) => i.spec) : []), ...list]);
+    const added = list.map((spec) => {
       const kind = KINDS[spec.kind] ?? KINDS.card;
       const card = document.createElement('div');
       card.className = `annot annot--${spec.kind ?? 'card'}`;
@@ -211,9 +213,10 @@ export function createAnnotations(layer, stage, { getSafeRect, onFocus, getWidge
       const it = { spec, kind, card, live: card.querySelector('.annot__live'), anchor: null, lockId: null, data: {}, stage, marks: [] };
       return it;
     });
+    items = keep ? [...items, ...added] : added;
     startIdle();
     // Async set-up (auto anchors, frame grabs) after the current frame exists.
-    items.forEach(async (it) => {
+    added.forEach(async (it) => {
       await it.kind.init?.(it, stage, getSafeRect);
       if (my === token) it.kind.onFrame?.(it, stage);
       stage.redraw();
@@ -321,16 +324,49 @@ export function createAnnotations(layer, stage, { getSafeRect, onFocus, getWidge
     // Keep the card clear of what the kind draws around its anchor (`reach`, native px).
     const gap = Math.max(56, (it.kind.reach?.(it) ?? 0) * stage.transform.scale + 20);
     // Candidate spots around the anchor (or stacked down the left edge if unanchored).
-    const candidates = a
-      ? [[ax + gap, ay - ch - gap], [ax - gap - cw, ay - ch - gap], [ax + gap, ay + gap], [ax - gap - cw, ay + gap],
-        [ax + gap, ay - ch / 2], [ax - gap - cw, ay - ch / 2]]
-      : [[sx0 + pad, sy0 + pad], [sx1 - cw - pad, sy0 + pad]];
     let left, top;
-    for (const [l, t] of candidates.map(([l, t]) => [clampX(l), clampY(t)])) {
-      if (!hits(l, t)) { left = l; top = t; break; }
+    if (a) {
+      // Anchored cards sit as close to their point as they can: the free spot (no other card or UI under it, the
+      // anchor's own drawing left uncovered) whose edge is nearest the anchor.
+      const farFrom = (l, t) => Math.hypot(Math.max(l - ax, 0, ax - (l + cw)), Math.max(t - ay, 0, ay - (t + ch)));
+      let best = null;
+      for (let t = sy0 + pad; t <= sy1 - ch - pad + 1; t += 16) {
+        for (let l = sx0 + pad; l <= sx1 - cw - pad + 1; l += 16) {
+          if (hits(l, t)) continue;
+          const d = farFrom(l, t);
+          if (d < gap * 0.7) continue; // keep the marker, ellipse and window visible
+          const score = d + Math.hypot(l + cw / 2 - ax, t + ch / 2 - ay) * 0.02;
+          if (!best || score < best[0]) best = [score, l, t];
+        }
+      }
+      if (best) [, left, top] = best;
+    } else if (it.marks?.length) {
+      // No single anchor, but the card's coloured words point at marks on the footage (lost tracks, rings, ...):
+      // sit beside them, covering as few as possible.
+      let pts = it.marks.map((m) => stage.toScreen(m.x, m.y));
+      const vis = pts.filter(([x, y]) => x > sx0 && x < sx1 && y > sy0 && y < sy1);
+      if (vis.length) pts = vis;
+      const step = Math.max(1, Math.ceil(pts.length / 30)), few = pts.filter((_, i) => i % step === 0);
+      const tx = pts.reduce((s, p) => s + p[0], 0) / pts.length, ty = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+      const farFrom = (l, t) => Math.hypot(Math.max(l - tx, 0, tx - (l + cw)), Math.max(t - ty, 0, ty - (t + ch)));
+      let best = null;
+      for (let t = sy0 + pad; t <= sy1 - ch - pad + 1; t += 16) {
+        for (let l = sx0 + pad; l <= sx1 - cw - pad + 1; l += 16) {
+          if (hits(l, t)) continue;
+          const covered = few.reduce((n, [x, y]) => n + (x > l && x < l + cw && y > t && y < t + ch ? 1 : 0), 0);
+          const score = farFrom(l, t) + covered * 18 + Math.hypot(l + cw / 2 - tx, t + ch / 2 - ty) * 0.02;
+          if (!best || score < best[0]) best = [score, l, t];
+        }
+      }
+      if (best) [, left, top] = best;
+    }
+    if (left == null && !a) {
+      for (const [l, t] of [[sx0 + pad, sy0 + pad], [sx1 - cw - pad, sy0 + pad]].map(([l, t]) => [clampX(l), clampY(t)])) {
+        if (!hits(l, t)) { left = l; top = t; break; }
+      }
     }
     if (left == null) { // everything overlaps: take the spot that covers the least
-      const spots = candidates.map(([l, t]) => [clampX(l), clampY(t)]);
+      const spots = [[clampX(sx0 + pad), clampY(sy0 + pad)], [clampX(sx1 - cw - pad), clampY(sy0 + pad)]];
       for (let t = sy0 + pad; t < sy1 - ch; t += 24) spots.push([clampX(sx0 + pad), t], [clampX(sx1 - cw - pad), t]);
       [left, top] = spots.reduce((b, p) => (overlap(...p) < overlap(...b) ? p : b));
     }

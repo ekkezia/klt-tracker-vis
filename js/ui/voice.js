@@ -3,6 +3,8 @@
 // assets/voice/manifest.json as { "<chapterId>:<lineIndex>": "assets/voice/....mp3" }.
 // The browser never talks to ElevenLabs, so no API key is ever exposed.
 
+import { VOICE_RATE } from '../config.js';
+
 const MANIFEST = 'assets/voice/manifest.json';
 
 export async function createVoice(button, state) {
@@ -38,6 +40,7 @@ export async function createVoice(button, state) {
     const src = manifest[`${step.chapter.id}:${step.lineIndex}`];
     if (!src) return null;
     audio.src = src;
+    audio.defaultPlaybackRate = VOICE_RATE; audio.playbackRate = VOICE_RATE; audio.preservesPitch = true;
     audio.currentTime = 0;
     return new Promise((resolve) => {
       const done = () => {

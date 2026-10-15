@@ -6,7 +6,7 @@ import { inline, render } from '../lib/markup.js';
 import { prefersReducedMotion } from '../config.js';
 import { expressions, frameSrc } from '../data/expressions.js';
 
-const SPEECH_WORD_MS = 230; // simulated speaking pace while there is no voice recording
+const SPEECH_WORD_MS = 185; // simulated speaking pace while there is no voice recording
 
 /** How long a line takes to "say": the text reveal, the mouth and the overlay delay all follow it. */
 const speechMs = (words) => Math.min(6000, Math.max(900, words * SPEECH_WORD_MS));
@@ -89,7 +89,7 @@ export function createDialogue({ box, end }, { characters, references, disclaime
   }).join('');
   end.querySelector('[data-end="disclaimer"]').innerHTML = render(disclaimer);
 
-  function show(step) {
+  function show(step, { instant = false } = {}) {
     clearTimeout(revealTimer);
     revealing = false;
     talker.stop();
@@ -111,6 +111,7 @@ export function createDialogue({ box, end }, { characters, references, disclaime
     els.role.textContent = c.role;
     els.text.innerHTML = inline(text);
     reveal();
+    if (instant) finish(); // already heard: the whole line at once
   }
 
   // Word-by-word reveal. KaTeX blocks count as one word.

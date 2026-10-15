@@ -251,7 +251,7 @@ a { color: inherit; text-underline-offset: 2px; }
   box-shadow: 0 0 14px var(--bubble-glow);
 }
 .dialogue__role { font: 500 .75rem var(--sans); color: #6b6559; }
-.dialogue__text { margin: 0; font: 500 clamp(1.05rem, 1.7vw, 1.35rem)/1.55 var(--sans); max-width: 75ch; }
+.dialogue__text { margin: 0; font: 500 clamp(1.05rem, 1.7vw, 1.35rem)/1.55 var(--sans); max-width: none; }
 .dialogue__text .katex { font-size: 1.05em; }
 .dialogue__next {
   position: absolute; right: 1.5rem; bottom: .6rem; font: 700 .8rem var(--sans); color: #0e7490;
@@ -511,6 +511,12 @@ table { border-collapse: collapse; font-size: .9rem; }
 @keyframes loop-flow { to { stroke-dashoffset: -14; } }
 @keyframes loop-pulse { 50% { filter: drop-shadow(0 0 13px var(--overlay-focus)); } }
 @media (prefers-reduced-motion: reduce) { .loop__arrow, .loop__node.is-on rect { animation: none; } }
+/* "The math" cards: larger, so the equations read at a glance */
+.annot--card { font-size: 1.08rem; line-height: 1.6; max-width: min(30rem, 72vw); padding: .75rem 1rem; }
+.annot--card .annot__title { font-size: .9rem; }
+.annot--card .katex { font-size: 1.3em; }
+.annot--card .katex-display { margin: .5em 0; }
+@media (max-width: 760px) { .annot--card { font-size: .9rem; } }
 .annot--pyramidlab { max-width: min(26rem, 80vw); }
 .annot--tensorlab { max-width: min(22rem, 80vw); }
 .annot__lab { display: grid; grid-template-columns: 1fr 1fr; gap: .2rem .8rem; margin: .3rem 0; }
