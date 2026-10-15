@@ -13,6 +13,8 @@
 //           'fb'         forward–backward error ring on every track (scale, labels)
 //           'replenish'  tracks lost (×) and corners detected (rings) in the last `lag` frames
 //           'pyramid'    inset: the anchored track's motion at pyramid levels 0..3
+//           'loop'       the KLT loop flowchart (Detect > Track > Verify > Replenish) with `step` lit and
+//                        this frame's real counts under each box (step: 'detect'|'track'|'verify'|'replenish'|null)
 //           'aperturelab' interactive: drag the true motion in velocity space; only the part across the
 //                        real edge under the anchor is measurable (normal flow)
 //           'tensorlab'  interactive: Flat / Edge / Corner presets plus window-size and
@@ -54,6 +56,7 @@ import {
   minEigenMap, downsample2, samplePatch, bilinear, buildPyramid, lkPyramid,
 } from '../lib/imageOps.js';
 import { arrow } from '../stage/scenes.js';
+import { frameStats } from '../stage/tracks.js';
 import { prefersReducedMotion } from '../config.js';
 import { getWidget } from '../widgets/registry.js';
 
@@ -518,6 +521,31 @@ const KINDS = {
       ctx.beginPath();
       ctx.ellipse(a.x, a.y, Math.max(r1, info.px), Math.max(r2, info.px), Math.atan2(t.v1[1], t.v1[0]), 0, Math.PI * 2);
       ctx.stroke();
+    },
+  },
+
+  // The KLT loop as a flowchart; the step being explained is lit, the numbers are this frame's real tracks.
+  loop: {
+    init(it) {
+      const box = ([x, y], key, label) => `<g class="loop__node" data-n="${key}" transform="translate(${x} ${y})">
+        <rect width="124" height="46" rx="10"/><text class="loop__name" x="62" y="19">${label}</text><text class="loop__cnt" x="62" y="37" data-c="${key}"></text></g>`;
+      const arrow = (d) => `<path class="loop__arrow" d="${d}" marker-end="url(#loop-head)"/>`;
+      it.live.innerHTML = `<svg class="loop" viewBox="0 0 300 150" role="img" aria-label="The KLT loop: detect, track, verify, replenish, repeated every frame">
+        <defs><marker id="loop-head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+        ${arrow('M142 28H156')}${arrow('M218 52V78')}${arrow('M158 126H144')}${arrow('M82 98V72')}
+        ${box([12, 6], 'detect', '1 Detect')}${box([164, 6], 'track', '2 Track')}${box([164, 98], 'verify', '3 Verify')}${box([12, 98], 'replenish', '4 Replenish')}
+        <text class="loop__mid" x="150" y="80" text-anchor="middle">every frame</text></svg>`;
+    },
+    onFrame(it, stage) {
+      const pts = stage.tracks?.frames?.[stage.frame];
+      if (!pts) return;
+      const st = frameStats(pts), set = (k, t) => { const el = it.live.querySelector(`[data-c="${k}"]`); if (el) el.textContent = t; };
+      set('detect', `${st.fresh} new corner${st.fresh === 1 ? '' : 's'}`);
+      set('track', `${st.tracked + st.lost} tracked in`);
+      set('verify', `${st.lost} dropped`);
+      set('replenish', `${st.active} tracks now`);
+      const on = it.spec.step ?? null;
+      it.live.querySelectorAll('.loop__node').forEach((g) => { g.classList.toggle('is-on', on === g.dataset.n); g.classList.toggle('is-dim', on != null && on !== g.dataset.n); });
     },
   },
 

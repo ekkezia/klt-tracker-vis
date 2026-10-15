@@ -126,6 +126,7 @@ export function createPlayer({ steps, state, stage, dialogue, annotations, voice
     // A line's `math` note is shown on the footage as a floating card.
     const math = step.line?.math ? [{ kind: 'card', title: 'The math', body: step.line.math }] : [];
     const focus = [].concat(step.line?.focus ?? []);
+    if (step.line?.loop != null) focus.unshift({ kind: 'loop', title: 'The KLT loop', step: step.line.loop === true ? null : step.line.loop }); // flowchart of the pipeline, lit at this step
     annotations.show(focus.length || math.length ? [...focus, ...math] : null);
     dialogue.markReady();
   }

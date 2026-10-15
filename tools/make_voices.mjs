@@ -20,6 +20,7 @@
 //   --force              regenerate even if the text and voice are unchanged
 //   --prune-stale        only delete clips whose line text changed (no API calls); prints the
 //                        characters needed to regenerate them
+//   (Pauses: short <break/> tags are added after commas, colons and sentence ends, see withPauses.)
 //   --model=<id>         ElevenLabs model id (default eleven_multilingual_v2;
 //                        eleven_flash_v2_5 uses fewer credits)
 //
@@ -74,6 +75,19 @@ function speakable(text) {
     .replace(/\[OUTLINE\]\s*/g, '')
     .replace(/\s+/g, ' ').trim();
   return { spoken, mathy };
+}
+
+/**
+ * Breathing room: ElevenLabs reads straight through punctuation, so add short <break/> pauses after it
+ * (eleven_multilingual_v2 supports them). Only after punctuation followed by a space, so "0.5" and "e.g." are left alone.
+ */
+const PAUSE = { sentence: 0.55, colon: 0.35, comma: 0.25 };
+function withPauses(text) {
+  const brk = (s) => ` <break time="${s}s" />`;
+  return text
+    .replace(/([.!?])\s+(?=\S)/g, (_, p) => `${p}${brk(PAUSE.sentence)} `)
+    .replace(/([:;])\s+(?=\S)/g, (_, p) => `${p}${brk(PAUSE.colon)} `)
+    .replace(/(,)\s+(?=\S)/g, (_, p) => `${p}${brk(PAUSE.comma)} `);
 }
 
 async function listVoices(key) {
@@ -157,7 +171,7 @@ async function main() {
       if (!voice) return; // e.g. the flight log is not voiced
       if (SPEAKERS && !SPEAKERS.includes(speaker)) return;
       const { spoken, mathy } = line.say ? { spoken: line.say, mathy: false } : speakable(line.text);
-      jobs.push({ key: `${ch.id}:${i}`, ch, i, speaker, voice, text: spoken, warn: mathy });
+      jobs.push({ key: `${ch.id}:${i}`, ch, i, speaker, voice, text: withPauses(spoken), warn: mathy });
     });
   }
 
