@@ -501,7 +501,7 @@ Whole window: $u^\star = +1$ ✓` },
     dialogue: [
       // OLD:
       // { topic: 'Recap', ref: 'Strengths', speaker: 'wren', text: 'Delivered, with no GPS. KLT in one breath: follow small windows at corners, refine each shift to a fraction of a pixel, use pyramids for big jumps, and check every track.' },
-      { topic: 'Recap', ref: 'Strengths', speaker: 'wren', text: 'Delivered, with no GPS. In conclusion, follow small windows at corners, refine each shift to a fraction of a pixel, use pyramids for big jumps, and check every track.' },
+      { topic: 'Recap', ref: 'Strengths', speaker: 'wren', text: 'The order has been delivered. In conclusion, follow small windows at corners, refine each shift to a fraction of a pixel, use pyramids for big jumps, and check every track.' },
       // OLD:
       // { topic: 'Strengths and limits', ref: 'Limits', speaker: 'wren', text: 'It is fast and precise, but it needs small motion and steady lighting, and it forgets a point once it is lost. The Article shows what came next.' },
       { topic: 'Strengths and limits', ref: 'Limits', speaker: 'wren', text: 'KLT only works while its three assumptions hold: steady brightness, small motion, and neighbours that move together. Break one and the tracks drift.' },
