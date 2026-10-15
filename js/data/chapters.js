@@ -251,7 +251,7 @@ Whole window: $u^\star = +1$ ✓` },
         focus: { kind: 'tensor', at: { auto: 'corner', region: TRUCK }, title: 'The structure tensor', body: R`The ellipse shows how strongly brightness changes in each direction inside {{corner|this window}}.` },
         math: R`$H = \sum_{\mathcal{W}} \nabla I\,\nabla I^\top = \sum_{\mathcal{W}} \begin{bmatrix} I_x^2 & I_x I_y \\ I_x I_y & I_y^2 \end{bmatrix}$, eigenvalues $\lambda_1 \ge \lambda_2$.`,
         speaker: 'tomasi', text: 'A window is trackable only if its brightness changes in two different directions. To test that, we collect all the brightness gradients in the window into one small matrix, the **structure tensor**.' },
-      { topic: 'Flat, edge, corner', ref: 'Flat, edge, corner', hold: K.truckStop + 24, speaker: 'tomasi', text: 'Its two eigenvalues tell you how strongly brightness changes in the strongest and the weakest direction. Both small: flat. One large, one small: an edge. Both large: a corner.' },
+      { topic: 'Flat, edge, corner', ref: 'Flat, edge, corner', hold: K.truckStop + 24, speaker: 'tomasi', text: 'Its two eigenvalues tell you how strongly brightness changes in the strongest direction, and in the weakest. If both are small, the patch is flat. If one is large and one is small, it is an edge. If both are large, it is a corner.' },
       { speaker: 'wren', text: 'Why does a corner work when an edge doesn\'t?' },
       // OLD:
       // { topic: 'Flat, edge, corner', ref: 'Flat, edge, corner', hold: K.truckStop + 24,
@@ -453,7 +453,7 @@ Whole window: $u^\star = +1$ ✓` },
     dialogue: [
       // OLD:
       // { topic: 'Tracks as a tool', ref: 'Why KLT suits these jobs', speaker: 'wren', text: 'I can see my dock. Dr Kanade, what are these tracks good for?', event: { call: 'kanade' } },
-      { topic: 'Tracks as a tool', ref: 'Why KLT suits these jobs', speaker: 'wren', text: 'I can see my dock! Dr Kanade, what are all these tracks good for?', event: { call: 'kanade' } },
+      { topic: 'Tracks as a tool', ref: 'Why KLT suits these jobs', speaker: 'wren', text: 'I can see my dock! Dr Kanade, I’m tracking all these points now. How can I actually use them?', event: { call: 'kanade' } },
       // OLD:
       // { topic: 'Visual odometry', ref: 'Visual odometry (outline)', focus: { kind: 'flow', at: { track: 'auto' }, lag: 6, scale: 4, title: 'Motion from tracks', body: 'Fit one camera motion to all tracks at once. The {{focus|arrow}} is one of them.' },
         // speaker: 'kanade', text: 'First, **odometry**: fit one camera motion to all the tracks, and you get your path without GPS.' },
