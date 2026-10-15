@@ -402,10 +402,15 @@ a { color: inherit; text-underline-offset: 2px; }
 .nb-iconbtn { flex: none; width: 2rem; height: 2rem; display: grid; place-items: center; background: none; color: var(--ink); cursor: pointer;
   border: 1px solid var(--rule); border-radius: 8px; font-size: 1rem; line-height: 1; transition: transform .15s ease, background .15s ease; }
 .nb-iconbtn:hover, .nb-iconbtn:focus-visible { background: color-mix(in srgb, var(--ink) 10%, transparent); transform: scale(1.12); outline: none; }
-.gh-link { flex: none; display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem; color: var(--ink); opacity: .75; transition: opacity .15s, transform .15s; }
-.gh-link:hover, .gh-link:focus-visible { opacity: 1; transform: scale(1.15); }
-.gh-link svg { width: 100%; height: 100%; }
-.gh-link--big { width: .8em; height: .8em; margin-right: .3em; vertical-align: -.03em; color: #fff; }
+/* GitHub: outlined (secondary) button on the start screen, a plain link in the references */
+.start__actions { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+.btn--gh { color: #d6dde6; text-decoration: none; }
+.btn--gh:hover, .btn--gh:focus-visible { color: #fff; background: rgba(255, 255, 255, .1); }
+.btn--gh svg, .gh-inline svg, .endpanel__gh svg { width: 1.15em; height: 1.15em; fill: currentColor; flex: none; }
+.endpanel__gh { margin: 1rem 0 0; }
+.endpanel__gh a { display: inline-flex; align-items: center; gap: .4rem; font-weight: 600; }
+.gh-inline { display: inline-flex; align-items: center; gap: .4rem; margin-top: .9rem; font: 600 .9rem var(--sans); color: var(--ink); text-decoration: none; border: 1px solid var(--rule); border-radius: 999px; padding: .3rem .8rem; }
+.gh-inline:hover { border-color: var(--ink); }
 .notebook__title { flex: none; margin: 0; font: 600 1.5rem/1 var(--serif); color: var(--ink); }
 .notebook__nav { flex: 1; min-width: 0; display: flex; gap: .3rem; overflow-x: auto; scrollbar-width: none; }
 .notebook__nav button { flex: none; background: none; border: 1px solid var(--rule); border-radius: 999px; padding: .2rem .65rem; font: 600 .74rem var(--sans); color: var(--ink-2); cursor: pointer; white-space: nowrap; }
