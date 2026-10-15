@@ -46,6 +46,11 @@ const M = createMaterials(renderer);
 buildCity(data, scene, M, { shadows: renderer.shadowMap.enabled });
 const people = plan.walkers.map((w) => makePerson(w, M));
 people.forEach((p) => scene.add(p.group));
+// Clouds for the ending (the camera tilts up to the sky after the last chapter): only shown from skyStart.
+const clouds = makeClouds(plan);
+scene.add(clouds);
+const vehicles = plan.traffic.map((v) => makeVehicle(v, M));
+vehicles.forEach((v) => scene.add(v.group));
 const tarts = plan.shopFront ? makeEggTarts(plan, M) : null;
 if (tarts) scene.add(tarts.group);
 
@@ -63,6 +68,8 @@ function setFrame(f) {
   sun.target.position.set(p.x, 0, p.z);
   sun.position.set(p.x - 60, 90, p.z + 40);
   people.forEach((pp) => pp.update(frame));
+  vehicles.forEach((vv) => vv.update(frame));
+  clouds.visible = frame >= plan.keys.skyStart;
   tarts?.update(frame);
 }
 
@@ -164,6 +171,83 @@ function makePerson(w, M) {
       const ph = walking ? Math.sin(t * w.speed * 5.2) : 0;
       legs[0].rotation.x = ph * 0.5; legs[1].rotation.x = -ph * 0.5;
       arms[0].rotation.x = -ph * 0.4; arms[1].rotation.x = ph * 0.4;
+    },
+  };
+}
+
+// --- clouds: soft puffs overhead, around where the camera ends up looking ----------------
+function makeClouds(plan) {
+  const g = new THREE.Group();
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d'), grad = x.createRadialGradient(64, 60, 4, 64, 64, 62);
+  grad.addColorStop(0, 'rgba(255,255,255,1)'); grad.addColorStop(0.45, 'rgba(255,255,255,.85)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = grad; x.fillRect(0, 0, 128, 128);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const r = rng(77), end = plan.frames[plan.frames.length - 1];
+  const fx = -Math.sin(end.yaw), fz = -Math.cos(end.yaw);              // where the camera looks (horizontally)
+  const dirAt = (az, el) => {                                           // az: sideways turn from the view, el: elevation (rad)
+    const ca = Math.cos(az), sa = Math.sin(az);
+    const hx = fx * ca - fz * sa, hz = fx * sa + fz * ca;
+    return [hx * Math.cos(el), Math.sin(el), hz * Math.cos(el)];
+  };
+  const puff = (c0, size, shade) => {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, opacity: 0.95, color: shade }));
+    s.position.set(...c0); s.scale.set(size, size * 0.62, 1); g.add(s);
+  };
+  const cloud = (az, el, R, size) => {
+    const d = dirAt(az, el), base = [end.x + d[0] * R, end.y + d[1] * R, end.z + d[2] * R];
+    for (let i = 0; i < 7; i++) puff([base[0] + (r() - 0.5) * size * 1.0, base[1] + (r() - 0.5) * size * 0.3, base[2] + (r() - 0.5) * size * 1.0],
+      size * (0.3 + r() * 0.35), r() < 0.45 ? 0xc9d5e5 : 0xffffff);   // some puffs a little shaded, so clouds have form
+  };
+  cloud(0, 1.12, 140, 75);                                             // right where the camera ends up
+  for (let i = 0; i < 18; i++) cloud((r() - 0.5) * 2.4, 0.4 + r() * 0.95, 120 + r() * 80, 35 + r() * 40);
+  g.visible = false;
+  return g;
+}
+
+// --- traffic: cars, vans, cyclists --------------------------------------------------
+function makeVehicle(v, M) {
+  const r = rng(v.seed * 53 + 3);
+  const g = new THREE.Group();
+  const mk = (geo, color, x, y, z, opts) => { const m = new THREE.Mesh(geo, M.flat(color, { roughness: 0.6, ...opts })); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
+  const paint = [0x9b1c1c, 0x1f3a5f, 0xd9d9d6, 0x2d2d2d, 0xb58900, 0x2f6f4f, 0xeeeeee][Math.floor(r() * 7)];
+  const wheels = [], spin = [];
+  let rider = null;
+  if (v.kind === 'bike') {
+    const wheel = (z) => { const w = mk(new THREE.TorusGeometry(0.34, 0.03, 8, 20), 0x151515, 0, 0.36, z); w.rotation.y = Math.PI / 2; spin.push(w); };
+    wheel(0.55); wheel(-0.55);
+    mk(new THREE.BoxGeometry(0.04, 0.05, 1.1), 0x333333, 0, 0.62, 0);
+    mk(new THREE.BoxGeometry(0.04, 0.5, 0.04), 0x333333, 0, 0.62, 0.5);
+    const top = new THREE.Color().setHSL(r(), 0.5, 0.4), skin = [0xe8c4a0, 0xc68e64, 0x8d5a3b][Math.floor(r() * 3)];
+    const torso = mk(new THREE.CapsuleGeometry(0.16, 0.38, 4, 8), top, 0, 1.12, 0.05); torso.rotation.x = 0.5;
+    mk(new THREE.SphereGeometry(0.1, 12, 10), skin, 0, 1.52, 0.28);
+    mk(new THREE.SphereGeometry(0.105, 12, 8, 0, 6.3, 0, 1.5), 0x222222, 0, 1.55, 0.28);   // helmet
+    rider = [-0.1, 0.1].map((x) => { const pv = new THREE.Group(); pv.position.set(x, 0.72, -0.05); g.add(pv);
+      const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.5, 4, 6), M.flat(0x20242c, { roughness: 0.8 })); leg.position.set(0, -0.28, 0); leg.castShadow = true; pv.add(leg); return pv; });
+  } else {
+    const van = v.kind === 'van', len = van ? 5.2 : 4.5, h = van ? 1.25 : 0.62;
+    mk(new THREE.BoxGeometry(1.85, 0.6, len), paint, 0, 0.62, 0);                                   // body
+    mk(new THREE.BoxGeometry(1.7, h, van ? len * 0.78 : len * 0.5), van ? 0xf1f1ee : paint, 0, 0.92 + h / 2 - 0.3, van ? -len * 0.1 : -len * 0.04); // cabin / box
+    mk(new THREE.BoxGeometry(1.72, 0.42, 0.06), 0x1a2229, 0, 1.2, len * (van ? 0.3 : 0.2), { roughness: 0.1, metalness: 0.6 }); // windscreen band
+    for (const [x, z] of [[-0.9, len * 0.32], [0.9, len * 0.32], [-0.9, -len * 0.32], [0.9, -len * 0.32]]) {
+      const w = mk(new THREE.CylinderGeometry(0.33, 0.33, 0.24, 14), 0x151515, x, 0.33, z); w.rotation.z = Math.PI / 2; spin.push(w);
+    }
+  }
+  const pts = v.pts, seg = [];
+  let L = 0;
+  for (let i = 0; i < pts.length - 1; i++) { const l = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]); seg.push([L, l]); L += l; }
+  return {
+    group: g,
+    update(f) {
+      const s = ((f - v.start) / FPS) * v.speed;
+      g.visible = s >= 0 && s <= L;
+      if (!g.visible) return;
+      let i = seg.findIndex(([a, l]) => s <= a + l); if (i < 0) i = seg.length - 1;
+      const [a, l] = seg[i], k = l ? (s - a) / l : 0, p0 = pts[i], p1 = pts[i + 1];
+      g.position.set(p0[0] + (p1[0] - p0[0]) * k, 0, p0[1] + (p1[1] - p0[1]) * k);
+      g.rotation.y = Math.atan2(p1[0] - p0[0], p1[1] - p0[1]);
+      spin.forEach((w) => { w.rotation[v.kind === 'bike' ? 'x' : 'x'] = -s / 0.34; });
+      if (rider) { const ph = Math.sin(s * 4.2); rider[0].rotation.x = ph * 0.7; rider[1].rotation.x = -ph * 0.7; }
     },
   };
 }

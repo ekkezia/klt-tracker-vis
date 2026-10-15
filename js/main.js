@@ -5,7 +5,9 @@ import { createStage } from './stage/stage.js';
 import { createAnnotations } from './annotations/annotations.js';
 import { createDialogue } from './ui/dialogue.js';
 import { createPhoneCall } from './ui/phoneCall.js';
-import { createHud, hudSummary } from './ui/hud.js';
+import { hudSummary } from './ui/hud.js';
+import { icons } from './ui/icons.js';
+import { ROUTE } from './data/route.js';
 import { createNotebook, sectionNumbers } from './ui/notebook.js';
 import { createVoice } from './ui/voice.js';
 import { createTimeline } from './ui/timeline.js';
@@ -43,12 +45,11 @@ const annotations = createAnnotations($('#annot-layer'), stage, {
   getWidgetApi: () => ({ state, stage, chapter: state.get().chapter }), // maximised "Try it" playgrounds
 });
 const numbers = sectionNumbers(chapters);
-const steps = buildSteps(chapters, standIns);
+const steps = buildSteps(chapters, standIns, { endFrame: ROUTE.keys.skyEnd, revealFrame: ROUTE.keys.skyStart + 84 });
 const dialogue = createDialogue(
   { box: $('#dialogue'), end: $('#endpanel') },
   { characters, references, disclaimer },
 );
-createHud($('#hud'), state, () => stage.tracks?.frameCount ?? 0);
 createPhoneCall($('#call'), state, characters, announce);
 const notebook = createNotebook($('#notebook'), state, { state, stage }, {
   chapters, references, onGoToChapter: (n) => player.goToChapter(n),
@@ -62,7 +63,7 @@ const notebook = createNotebook($('#notebook'), state, { state, stage }, {
 });
 const voice = await createVoice($('#voice-toggle'), state);
 const sfx = createSfx();
-const player = createPlayer({ steps, state, stage, dialogue, annotations, voice, sfx });
+const player = createPlayer({ steps, state, stage, dialogue, annotations, voice, sfx, onChapterEnd: () => notebook.open() });
 
 // Footage plays (muted) behind the start screen.
 stage.setClip(chapters[0].clip.id).then(() => stage.playRange(chapters[0].clip.start, chapters[0].clip.end));
@@ -82,16 +83,11 @@ state.subscribe((s, changed) => {
   if (changed.includes('step') && s.step && key !== lastTopic) {
     lastTopic = key;
     headline.classList.remove('is-in');
-    // Story -> notebook: the topic's section number links into the Lab Notebook.
-    const num = s.step.ref && numbers.get(`${s.step.chapter.id}|${s.step.ref}`);
-    headline.innerHTML = num
-      ? `<button type="button" class="headline__ref" data-nbref="${s.step.chapter.id}|${s.step.ref}" title="Read §${num} in the Lab Notebook">§${num}</button> `
-      : '';
-    headline.append(s.step.topic);
+    headline.textContent = s.step.topic;
     void headline.offsetWidth; // restart the entrance animation
     headline.classList.add('is-in');
   }
-  // "Lab notes §i.j" in the dialogue box: the section that explains this line in depth.
+  // "Article §i.j" in the dialogue box: the section that explains this line in depth.
   if (changed.includes('step') && s.step) {
     const more = $('#dialogue-more');
     const ref = s.step.type === 'line' ? s.step.ref : null;
@@ -99,13 +95,14 @@ state.subscribe((s, changed) => {
     more.hidden = !ref;
     if (ref) {
       more.dataset.ref = ref;
-      more.innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M6 5h4M6 8h4M6 11h2"/></svg> Lab notes${num ? ` §${num}` : ''} <kbd>N</kbd>`;
+      more.innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M6 5h4M6 8h4M6 11h2"/></svg> Article${num ? ` §${num}` : ''} <kbd>N</kbd>`;
       more.title = `Read more: ${ref.replace(/\s*\((outline|placeholder)\)$/, '')}`;
     }
   }
   if (changed.includes('chapter') && s.chapter && s.chapter !== lastChapter) {
     lastChapter = s.chapter;
     $('#stage-place').textContent = `Chapter ${s.chapter.index} · ${s.chapter.place}`;
+    $('#stage-icon').innerHTML = icons[s.chapter.icon] ?? '';
     $('#stage-desc').textContent = s.chapter.sceneAlt;
     announce(`Chapter ${s.chapter.index}, ${s.chapter.place}. ${s.chapter.sceneAlt} ${hudSummary(s.trackFrame)}`);
   }

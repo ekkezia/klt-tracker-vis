@@ -3,7 +3,7 @@
 export const ROUTE = {
   "clip": "chinatown",
   "fps": 24,
-  "frameCount": 3196,
+  "frameCount": 3364,
   "from": "Happy Star Bakery Corporation",
   "to": "Seward Park",
   "chapters": {
@@ -49,7 +49,9 @@ export const ROUTE = {
     "lkFrame": 1251,
     "sprintStart": 1451,
     "parkStart": 2103,
-    "dockStop": 3064
+    "dockStop": 3064,
+    "skyStart": 3196,
+    "skyEnd": 3363
   },
   "attribution": "Map data (c) OpenStreetMap contributors, ODbL 1.0 (openstreetmap.org/copyright)"
 };

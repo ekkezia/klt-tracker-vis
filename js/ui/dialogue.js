@@ -98,7 +98,8 @@ export function createDialogue({ box, end }, { characters, references, disclaime
     current = step;
     // Intro steps show no dialogue box (the HUD headline names the chapter).
     box.hidden = step.type !== 'line';
-    end.hidden = step.type !== 'end';
+    end.hidden = true; // the references fade in once the footage has tilted up to the sky (showEnd)
+    end.classList.remove('is-in');
     if (step.type !== 'line') return;
 
     const { speaker, text } = step.line;
@@ -162,8 +163,18 @@ export function createDialogue({ box, end }, { characters, references, disclaime
     talker.start(els.portrait, current.line.speaker, current.line.expression, until, speechMs(words));
   }
 
+  /** Fade the references in over the clouds (called when the footage has stopped on the sky). */
+  function showEnd() {
+    if (current?.type !== 'end' || end.classList.contains('is-in')) return;
+    [...end.querySelectorAll('h2, .refs li, .disclaimer, .btn')].forEach((el, i) => el.style.setProperty('--i', i));
+    end.hidden = false;
+    void end.offsetWidth;
+    end.classList.add('is-in');
+  }
+
   return {
     show,
+    showEnd,
     talk,
     /** The scene has finished explaining (text, voice and overlay): point the reader at Next. */
     markReady() { if (current?.type === 'line') box.classList.add('is-ready'); },

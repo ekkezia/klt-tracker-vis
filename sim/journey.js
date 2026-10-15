@@ -6,6 +6,7 @@
 //   keys:     named frames the story uses (e.g. where the robot stops at the truck)
 //   truck, dockPose: prop placements (also used by city.js)
 //   walkers:  pedestrians [{ pts, start, speed, seed }]
+//   traffic:  moving cars, vans and cyclists [{ kind, pts, start, speed, seed }] (pts = the lane's polyline)
 //
 // Camera convention: robot camera 0.72 m above ground, looking along the path.
 // Three.js cameras look down -z, so yaw = atan2(-dx, -dz) for heading (dx, dz).
@@ -133,11 +134,23 @@ export function planJourney(data) {
     hold(48);
   });
   chapter(7, () => hold(84));                // debrief, docked
+  // Ending (after the last chapter, so no chapter range moves): the camera tilts up to the sky, where the
+  // references appear on the clouds. keys.skyStart..skyEnd is the pan, then a short hold.
+  mark('skyStart');
+  {
+    const last = out[out.length - 1], p0 = last.pitch, N = 96, H = 72;
+    for (let k = 0; k < N + H; k++) {
+      const t = Math.min(1, k / N), e = t * t * (3 - 2 * t);
+      out.push({ ...last, pitch: p0 + (1.12 - p0) * e, yaw: last.yaw + 0.06 * (k / (N + H)) });
+    }
+  }
+  keys.skyEnd = out.length - 1;
 
   return {
     frames: out, chapters, keys, fps: FPS,
     truck: path.truck, dockPose: path.dockPose, shopFront: path.shopFront,
     walkers: makeWalkers(path, keys),
+    traffic: makeTraffic(out, data),
   };
 }
 
@@ -266,6 +279,79 @@ function makeWalkers(path, keys) {
   W.push({ pts: [side(mid + 8, 9), side(mid + 8, -9)], start: keys.parkStart + 90, speed: 1.1, seed: 8 });
   W.push({ pts: [side(P.parkEntry - 4, -1.3), side(P.end + 4, -1.3)], start: keys.parkStart + 20, speed: 2.6, seed: 9 });
   return W;
+}
+
+/**
+ * Moving vehicles, timed so each one passes the robot's position at a chosen frame
+ * (`pass(...)`): cars and vans in the street beside the sidewalk, cyclists near the kerb.
+ * They exist to give the tracker (and the story) things that move on their own, faster
+ * than the robot: optical flow that is not just the robot's own motion.
+ */
+function makeTraffic(frames, data) {
+  const R = data.roads;
+  // Centre lines (direction of travel = increasing index): East Broadway, then Rutgers St -> Essex St.
+  const EB = [...R[11].pts.slice(-4), ...R[8].pts.slice(1)];
+  const RS = [...R[9].pts, ...R[7].pts.slice(1)];
+  // Offset a polyline to the right of its direction of travel (right = (-dz, dx), as the camera sees it).
+  const lane = (center, forward, lateral) => {
+    const c = forward ? center : [...center].reverse();
+    return c.map((p, i) => {
+      const a = c[Math.max(0, i - 1)], b = c[Math.min(c.length - 1, i + 1)];
+      const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz) || 1;
+      return [p[0] - (dz / L) * lateral, p[1] + (dx / L) * lateral];
+    });
+  };
+  const project = (poly, q) => { // metres along `poly` of the point closest to q
+    let best = [Infinity, 0], acc = 0;
+    for (let i = 0; i < poly.length - 1; i++) {
+      const a = poly[i], b = poly[i + 1], dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz || 1, L = Math.sqrt(L2);
+      const t = Math.max(0, Math.min(1, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dz) / L2));
+      const d = Math.hypot(q[0] - (a[0] + t * dx), q[1] - (a[1] + t * dz));
+      if (d < best[0]) best = [d, acc + t * L];
+      acc += L;
+    }
+    return best[1];
+  };
+  const T = [];
+  const pass = (kind, center, forward, lateral, speed, frame, seed) => {
+    const pts = lane(center, forward, lateral), r = frames[Math.min(frames.length - 1, frame)];
+    T.push({ kind, pts, start: frame - (project(pts, [r.x, r.z]) / speed) * FPS, speed, seed });
+  };
+  // Straight across the robot's way, `ahead` metres in front of it at `frame`, from `from` m to its left to `to` m to its right
+  // (negative `from` / `to` swap the side): optical flow at its strongest, a cyclist sweeping across the view.
+  const across = (kind, frame, ahead, from, to, speed, seed) => {
+    const r = frames[frame], hx = -Math.sin(r.yaw), hz = -Math.cos(r.yaw), rx = -hz, rz = hx;
+    const q = [r.x + hx * ahead, r.z + hz * ahead];
+    T.push({ kind, pts: [[q[0] - rx * from, q[1] - rz * from], [q[0] + rx * to, q[1] + rz * to]], start: frame - (Math.abs(from) / speed) * FPS, speed, seed });
+  };
+  // East Broadway runs along the right of the sidewalk. Westbound is the near lane (it meets the robot head-on).
+  //                 kind    road forward lat  m/s  frame seed
+  pass('car',  EB, false, 2.6, 9.0,  505, 11);
+  pass('van',  EB, true,  2.6, 8.0,  530, 12);
+  pass('bike', EB, false, 4.6, 5.0,  585, 13);
+  pass('car',  EB, true,  2.6, 10.0, 640, 14);
+  pass('bike', EB, true,  4.6, 5.5,  690, 15);
+  // The far side of the Rutgers St crosswalk, ahead of the robot: cyclists sweeping across the view.
+  across('bike', 545, 11, 6, 9, 5.0, 41);
+  across('bike', 650, 10, -6, -9, 5.5, 42);
+  across('bike', 735, 10, 5, 9, 5.5, 43);
+  // The plaza ahead while the robot walks north: cyclists cutting across its path.
+  across('bike', 1130, 9, 6, 16, 5.0, 31);
+  across('bike', 1215, 10, -6, -16, 5.5, 32);
+  across('bike', 1290, 9, 6, 16, 6.0, 33);
+  across('bike', 1355, 8, -6, -16, 5.0, 34);
+  // Rutgers / Essex St, on the robot's left while it walks north: the near lane flows the same way as the robot.
+  pass('car',  RS, true,  2.8, 8.0,  1090, 19);
+  pass('bike', RS, false, 4.8, 5.0,  1175, 20);
+  pass('car',  RS, false, 2.8, 9.0,  1235, 21);
+  pass('van',  RS, true,  2.8, 7.0,  1300, 22);
+  pass('bike', RS, true,  4.8, 5.5,  1365, 23);
+  pass('car',  RS, true,  2.8, 9.5,  1485, 24);
+  pass('car',  RS, false, 2.8, 8.5,  1560, 25);
+  pass('bike', RS, true,  4.8, 6.0,  1650, 26);
+  pass('van',  RS, false, 2.8, 7.5,  1740, 27);
+  pass('car',  RS, true,  2.8, 10.0, 1840, 28);
+  return T;
 }
 
 // ---- helpers -------------------------------------------------------------------

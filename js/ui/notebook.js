@@ -1,10 +1,11 @@
-// Lab Notebook drawer: every chapter's notes in one scroll. Each chapter has a
+// Article drawer (the Lab Notebook): every chapter's notes in one scroll. Each chapter has a
 // sticky header, so the reader always knows which chapter they are in. Opening
 // the notebook scrolls to the chapter the story is at (or to the section a
 // dialogue line points at). Chapter playgrounds mount lazily, as they scroll in.
 
 import { render } from '../lib/markup.js';
 import { getWidget } from '../widgets/registry.js';
+import { prefersReducedMotion } from '../config.js';
 
 /** "i.j" for each notebook section: chapter index . position in the chapter, keyed `${chapterId}|${title}`. */
 export const sectionNumbers = (chapters) => new Map(chapters.flatMap((c) =>
@@ -13,12 +14,11 @@ export const sectionNumbers = (chapters) => new Map(chapters.flatMap((c) =>
 const attr = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 
 export function createNotebook(root, state, api, { chapters, onGoToChapter, onGoToRef }) {
-  const title = root.querySelector('[data-nb="title"]');
-  const kicker = root.querySelector('[data-nb="kicker"]');
   const body = root.querySelector('[data-nb="body"]');
   const nav = root.querySelector('[data-nb="nav"]');
   const scroller = root.querySelector('.notebook__scroll');
   const closeBtn = root.querySelector('[data-nb="close"]');
+  const maxBtn = root.querySelector('[data-nb="max"]');
   let built = false;
   let returnFocus = null;
   const mounted = new Set();
@@ -28,8 +28,6 @@ export function createNotebook(root, state, api, { chapters, onGoToChapter, onGo
   function build() {
     if (built) return;
     built = true;
-    kicker.textContent = 'Lab Notebook';
-    title.textContent = 'Notes for every chapter';
     nav.innerHTML = chapters.map((c) => `<button type="button" data-go="${c.id}" title="${attr(c.title)}"><b>${c.index}</b> ${c.short}</button>`).join('');
     body.innerHTML = chapters.map((c) => `
       <section class="nb-chapter" data-ch="${c.id}">
@@ -99,6 +97,8 @@ export function createNotebook(root, state, api, { chapters, onGoToChapter, onGo
   }
 
   function open(target = null) {
+    clearTimeout(closeTimer);
+    root.classList.remove('is-closing');
     returnFocus = document.activeElement;
     build();
     markHere();
@@ -112,15 +112,26 @@ export function createNotebook(root, state, api, { chapters, onGoToChapter, onGo
     return true;
   }
 
+  let closeTimer = 0;
   function close() {
-    if (root.hidden) return;
-    root.hidden = true;
+    if (root.hidden || root.classList.contains('is-closing')) return;
     document.body.classList.remove('notebook-open');
     state.set({ notebookOpen: false });
     returnFocus?.focus?.();
+    // Slide back out to the right, then hide.
+    if (prefersReducedMotion()) { root.hidden = true; return; }
+    root.classList.add('is-closing');
+    closeTimer = setTimeout(() => { root.hidden = true; root.classList.remove('is-closing'); }, 360);
   }
 
   closeBtn.addEventListener('click', close);
+  maxBtn.addEventListener('click', () => {
+    const on = root.classList.toggle('notebook--max');
+    maxBtn.textContent = on ? '⤡' : '⤢';
+    maxBtn.title = on ? 'Back to side panel' : 'Maximise';
+    maxBtn.setAttribute('aria-pressed', String(on));
+    maxBtn.setAttribute('aria-label', on ? 'Restore the side panel' : 'Maximise the article');
+  });
   root.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } });
 
   root.addEventListener('click', (e) => {
@@ -147,5 +158,5 @@ export function createNotebook(root, state, api, { chapters, onGoToChapter, onGo
     spyNow();
   }
 
-  return { open, openSection, close, toggle: () => (root.hidden ? open() : close()) };
+  return { open, openSection, close, toggle: () => (root.hidden || root.classList.contains('is-closing') ? open() : close()) };
 }

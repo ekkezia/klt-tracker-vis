@@ -264,6 +264,7 @@ export function createStage(root, state, clips) {
       video.pause();
       const out = [];
       for (const f of frames) {
+        if (!Number.isFinite(f) || !Number.isFinite(fps)) { out.push(null); continue; } // never seek to NaN: it would stall the queue
         await new Promise((res) => {
           const done = () => { video.removeEventListener('seeked', done); res(); };
           video.addEventListener('seeked', done);
