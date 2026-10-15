@@ -1,4 +1,4 @@
-// Playground (Ch 1): the aperture problem.
+// Playground (Ch 2): the aperture problem.
 // Left: a long bar seen through a circular window, moving with velocity v.
 // Right: velocity space (u, v). Drag the blue dot to set the bar's true motion.
 // Every velocity on the dashed line produces the same picture in the window;

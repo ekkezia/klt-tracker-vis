@@ -90,7 +90,9 @@ export function createNotebook(root, state, api, { chapters, references = [], on
         ${c.notebook.map((sec, j) => `
           <section class="nb-section ${sec.level === 'math' ? 'is-math' : ''}" data-sec="${attr(sec.title)}">
             <h4><span class="nb-num">${c.index}.${j + 1}</span> ${sec.title}${sec.level === 'math' ? ' <span class="tag">math</span>' : ''}</h4>
+            <div class="notebook__widget" data-widgets data-slot="${attr(sec.title.trim())}"></div>
             ${render(sec.body)}
+            <div class="notebook__widget" data-widgets data-slot-end="${attr(sec.title.trim())}"></div>
             <button type="button" class="nb-see" data-see="${attr(`${c.id}|${sec.title}`)}" data-play="${c.index}">▶ See this in the story</button>
           </section>`).join('')}
       </section>`).join('') + `
@@ -116,8 +118,12 @@ export function createNotebook(root, state, api, { chapters, references = [], on
     if (mounted.has(id)) return;
     mounted.add(id);
     const chapter = chapters.find((c) => c.id === id);
-    const host = chapterEl(id).querySelector('[data-widgets]');
-    for (const wid of [].concat(chapter.widget ?? [])) {
+    const top = chapterEl(id).querySelector('[data-widgets]');
+    for (const entry of [].concat(chapter.widget ?? [])) {
+      const wid = typeof entry === 'string' ? entry : entry.id;
+      // A playground sits under the heading of the section it belongs to (`at`), else at the top of the chapter.
+      const key = entry.end ? 'slotEnd' : 'slot'; // `end`: after the section's text instead of right under its heading
+      const host = (entry.at && [...chapterEl(id).querySelectorAll(entry.end ? '[data-slot-end]' : '[data-slot]')].find((el) => el.dataset[key] === entry.at.trim())) || top;
       const slot = host.appendChild(document.createElement('div'));
       slot.className = 'notebook__playground';
       try { getWidget(wid)(slot, { ...api, chapter }); } catch (err) { console.warn(`widget ${wid}`, err); }

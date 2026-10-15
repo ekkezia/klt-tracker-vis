@@ -28,7 +28,9 @@
 //      ref:    title of this chapter's notebook section that covers `topic`;
 //              the headline shows its Full-article number (§i.j) as a link
 //   notebook: imported from ./notebook/<n>-<name>.js, an array of { title, level: 'story' | 'math', body },
-//   widget: playground id(s) in the Lab Notebook (js/widgets/registry.js): a string, an array, or null
+//   widget: playground(s) in the Article (js/widgets/registry.js): null, an id, or an array of ids / { id, at }.
+//           `at` is the title of the article section the playground belongs to: under its heading, or after its text with `end: true`
+//           (no `at`: top of the chapter)
 // }
 //
 // Markup in text/body: blank line = paragraph, $inline$, $$display$$,
@@ -130,7 +132,7 @@ export const chapters = [
       { speaker: 'wren', text: 'I don\'t yet know how to measure these shifts reliably. Read the article to understand the problem.' },
     ],
     notebook: nb_boot,
-    widget: 'displacement',
+    widget: [{ id: 'displacement', at: 'Why not just match descriptors?' }], // each playground sits under the article section it belongs to
   },
 
   // ---------------------------------------------------------------------------
@@ -206,7 +208,7 @@ Whole window: $u^\star = +1$ ✓` },
         speaker: 'wren', text: '' },
     ],
     notebook: nb_lobby,
-    widget: ['flow-1d', 'aperture'],
+    widget: [{ id: 'flow-1d', at: 'Least squares over a window' }],
   },
 
   // ---------------------------------------------------------------------------
@@ -271,7 +273,7 @@ Whole window: $u^\star = +1$ ✓` },
         speaker: 'wren', text: 'Re-detecting with that rule, my points land on the wheels and corners, and none on the blank panel.' },
     ],
     notebook: nb_wall,
-    widget: 'structure-tensor',
+    widget: [{ id: 'aperture', at: 'The aperture problem', end: true }, { id: 'structure-tensor', at: 'Flat, edge, corner', end: true }],
   },
 
   // ---------------------------------------------------------------------------
@@ -317,7 +319,7 @@ Whole window: $u^\star = +1$ ✓` },
         speaker: 'tomasi', text: 'Track each point forward, then back. A good match is reversible, so it should return to where it started. The ring shows how far it misses. The point that gets a red cross is dropped. The number at the top is the average round trip over the tracks, that is what we keep.', event: { hangup: true } },
     ],
     notebook: nb_sprint,
-    widget: ['pyramid-synth', 'pyramid'],
+    widget: [{ id: 'pyramid-synth', at: 'Image pyramids: coarse-to-fine tracking' }, { id: 'pyramid', at: 'Image pyramids: coarse-to-fine tracking' }],
   },
 
   // ---------------------------------------------------------------------------
@@ -379,7 +381,7 @@ Whole window: $u^\star = +1$ ✓` },
         speaker: 'wren', text: 'Now I\'m tracking dozens of corners. This arrow follows one, and its ID never changes while it stays in view.' },
     ],
     notebook: nb_corridor,
-    widget: 'lk-iterations',
+    widget: [{ id: 'lk-iterations', at: 'Gauss–Newton iteration' }],
   },
 
   // ---------------------------------------------------------------------------
@@ -431,7 +433,7 @@ Whole window: $u^\star = +1$ ✓` },
       //   speaker: 'tomasi', text: 'Fourth, **replenish**: red crosses show where tracks were lost, and green rings show new corners. A lost point never gets its old ID back. Read the article to follow the math.', event: { hangup: true } },
     ],
     notebook: nb_crowd,
-    widget: 'pipeline-inspector',
+    widget: [{ id: 'pipeline-inspector', at: 'The KLT loop' }],
   },
 
   // ---------------------------------------------------------------------------
@@ -479,7 +481,7 @@ Whole window: $u^\star = +1$ ✓` },
       { speaker: 'wren', text: 'Corners lined up. Egg tarts delivered.' },
     ],
     notebook: nb_docking,
-    widget: 'servo',
+    widget: [{ id: 'servo', at: 'Image-based visual servoing' }],
   },
 
   // ---------------------------------------------------------------------------

@@ -26,7 +26,7 @@ import { mountServoPlayground } from './servoPlayground.js';
 const registry = new Map([
   ['displacement', mountDisplacement],             // Ch 0
   ['flow-1d', mountFlow1d],                        // Ch 1
-  ['aperture', mountAperturePlayground],           // Ch 1
+  ['aperture', mountAperturePlayground],           // Ch 2
   ['structure-tensor', mountStructureTensor],      // Ch 2
   ['pyramid-synth', mountPyramidSynth],            // Ch 3 (test scene)
   ['pyramid', mountPyramidPlayground],             // Ch 3 (real footage)
