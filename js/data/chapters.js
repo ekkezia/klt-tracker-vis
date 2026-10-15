@@ -119,7 +119,7 @@ export const chapters = [
       { topic: 'Displacement between frames', ref: 'Why not just match descriptors?',
         focus: { kind: 'flow', at: { track: 'auto' }, lag: 1, scale: 12, title: R`One point, one frame`, body: R`The {{focus|arrow}} is this point's displacement $\mathbf{d}$ from the previous frame to this one, drawn 12× longer.` },
         math: R`Given frames $I_t, I_{t+1}$ and points $\mathbf{x}_i$, find $\mathbf{d}_i$ with $I_{t+1}(\mathbf{x}_i + \mathbf{d}_i) \approx I_t(\mathbf{x}_i)$.`,
-        speaker: 'wren', text: 'If I can measure that motion, I can work out how I moved. So I follow points. Tracking means picking a point and finding it again in every new frame, so it keeps one identity. Each dot you see is one tracked point, and its tail shows where it has been.' },
+        speaker: 'wren', text: 'As I move, every point in my view shifts a little between frames. If I can measure that shift, I can work out how I moved. So I follow points.' },
       // OLD:
       // { topic: 'Reading the tracks', ref: 'The tracking problem', hold: K.lobbyTurnEnd - 20,
         // focus: { kind: 'tracks', title: 'Tracks', body: 'Each {{tracked|dot}} is one point I follow from frame to frame. Its {{tail|tail}} shows the last 10 frames.' },
