@@ -59,11 +59,11 @@ export const characters = {
   // `brief` describes the intended sound, to help pick or design a voice.
   wren: { name: 'Wren', role: 'Delivery robot', initials: 'W', accent: 'var(--c-wren)',
     voice: { name: 'Wren - Robot', id: '', brief: 'young, bright, curious; slightly synthetic', stability: 0.5, similarity: 0.75, style: 0.25 } },
-  lucas: { name: 'Dr. Lucas', role: 'Optical flow', initials: 'L', accent: 'var(--c-lucas)',
+  lucas: { name: 'Dr Lucas', role: 'Optical flow', initials: 'L', accent: 'var(--c-lucas)',
     voice: { id: '', brief: 'warm, energetic teacher', stability: 0.45, similarity: 0.75, style: 0.3 } },
-  kanade: { name: 'Dr. Kanade', role: 'Image alignment', initials: 'K', accent: 'var(--c-kanade)',
+  kanade: { name: 'Dr Kanade', role: 'Image alignment', initials: 'K', accent: 'var(--c-kanade)',
     voice: { name: 'Kanade', id: '', brief: 'calm, mature professor; light Japanese accent', stability: 0.6, similarity: 0.75, style: 0.15 } },
-  tomasi: { name: 'Dr. Tomasi', role: 'Feature selection', initials: 'T', accent: 'var(--c-tomasi)',
+  tomasi: { name: 'Dr Tomasi', role: 'Feature selection', initials: 'T', accent: 'var(--c-tomasi)',
     voice: { name: 'Tomasi', id: '', brief: 'gentle, thoughtful, a little wry', stability: 0.55, similarity: 0.75, style: 0.2 } },
 };
 
@@ -151,8 +151,8 @@ export const chapters = [
     },
     dialogue: [
       // OLD:
-      // { topic: 'Every point has moved', ref: 'Brightness constancy', speaker: 'wren', text: 'Every point here has moved a little since the last frame. But how far, exactly? I\'m calling Dr. Kanade.', event: { call: 'kanade' } },
-      { topic: 'Every point has moved', ref: 'Brightness constancy', speaker: 'wren', text: 'I need to solve this: how far did each of my points move? Let me call Dr. Kanade.', event: { call: 'kanade' } },
+      // { topic: 'Every point has moved', ref: 'Brightness constancy', speaker: 'wren', text: 'Every point here has moved a little since the last frame. But how far, exactly? I\'m calling Dr Kanade.', event: { call: 'kanade' } },
+      { topic: 'Every point has moved', ref: 'Brightness constancy', speaker: 'wren', text: 'I need to solve this: how far did each of my points move? Let me call Dr Kanade.', event: { call: 'kanade' } },
       // OLD:
       // { topic: 'Brightness constancy', ref: 'Brightness constancy',
         // focus: { kind: 'patches', at: { track: 'auto', near: [700, 150] }, maps: ['prev', 'next'], lag: 1, title: 'Same patch, two frames', body: R`Left: the window around {{focus|this dot}} in the previous frame. Right: the window at its new position. The pixel values barely change.` },
@@ -171,7 +171,7 @@ export const chapters = [
       { topic: 'The optical flow constraint', ref: 'Optical flow constraint',
         focus: { kind: 'patches', at: { track: 'auto', near: [700, 150] }, maps: ['Ix', 'Iy', 'It'], lag: 1, title: 'The three terms', body: R`Gradients across ($I_x$), down ($I_y$) and over time ($I_t$) around {{focus|one dot}}.` },
         math: R`One Taylor step: $\;I_x u + I_y v + I_t = 0$. One equation per pixel, two unknowns.`,
-        speaker: 'kanade', text: 'The first assumption gives one equation per pixel. But the motion has two unknowns, across and down. One equation can\'t fix two unknowns. The article shows why.' },
+        speaker: 'kanade', text: 'The first assumption gives one equation per pixel. But the motion has two unknowns, across and down. One equation can\'t fix two unknowns. ' },
       { speaker: 'wren', text: 'So where do I get a second equation?' },
       // OLD:
       // { topic: 'Least squares over a window', ref: 'Least squares over a window',
@@ -203,7 +203,7 @@ Whole window: $u^\star = +1$ ✓` },
         // speaker: 'wren', text: 'Driving forward, the arrows spread out from where I\'m heading. Each one is only a few pixels per frame, which is exactly what the method needs.' },
       { topic: 'Optical flow, live', ref: 'The three assumptions',
         focus: { kind: 'flowfield', lag: 6, scale: 4, title: 'Flow while driving forward', body: 'The {{focus|arrows}} point outward from the spot I am driving toward; nearby points move faster.' },
-        speaker: 'wren', text: 'Driving forward, the arrows fan out from the point I\'m heading toward. Each is only a few pixels long, which is just what assumption two needs.' },
+        speaker: 'wren', text: '' },
     ],
     notebook: nb_lobby,
     widget: ['flow-1d', 'aperture'],
@@ -229,10 +229,10 @@ Whole window: $u^\star = +1$ ✓` },
       // OLD:
       // { topic: 'Tracks fail on a blank panel', ref: 'The aperture problem', hold: K.truckStop + 24,
         // focus: { kind: 'tensor', at: { auto: 'flat', region: TRUCK }, title: 'Blank panel', body: 'Gradients are almost zero in {{flat|this window}}. There is nothing to lock onto.' },
-        // speaker: 'wren', text: 'A truck has stopped in front of me. Points on its plain panel drift, and points on its edges slide along them. I\'m calling Dr. Tomasi.', event: { call: 'tomasi' } },
+        // speaker: 'wren', text: 'A truck has stopped in front of me. Points on its plain panel drift, and points on its edges slide along them. I\'m calling Dr Tomasi.', event: { call: 'tomasi' } },
       { topic: 'Tracks fail on a blank panel', ref: 'The aperture problem', hold: K.truckStop + 24,
         focus: { kind: 'tensor', at: { auto: 'flat', region: TRUCK }, title: 'Blank panel', body: 'Gradients are almost zero in {{flat|this window}}. There is nothing to lock onto.' },
-        speaker: 'wren', text: 'A truck has stopped in front of me. Dots on its plain side drift, and dots on its edges slide along them. Let me call Dr. Tomasi.', event: { call: 'tomasi' } },
+        speaker: 'wren', text: 'A truck has stopped in front of me. Dots on its plain side drift, and dots on its edges slide along them. Let me call Dr Tomasi.', event: { call: 'tomasi' } },
       // OLD:
       // { topic: 'The aperture problem', ref: 'The aperture problem', hold: K.truckStop + 24,
         // focus: { kind: 'aperturelab', widget: 'aperture', at: { auto: 'edge', region: TRUCK }, title: 'The aperture problem: drag the true motion', body: '{{good|Across the edge (✓)}} a shift changes what the window sees. {{bad|Along it (?)}} nothing changes.' },
@@ -250,8 +250,8 @@ Whole window: $u^\star = +1$ ✓` },
       { topic: 'The structure tensor', ref: 'The structure tensor', hold: K.truckStop + 24,
         focus: { kind: 'tensor', at: { auto: 'corner', region: TRUCK }, title: 'The structure tensor', body: R`The ellipse shows how strongly brightness changes in each direction inside {{corner|this window}}.` },
         math: R`$H = \sum_{\mathcal{W}} \nabla I\,\nabla I^\top = \sum_{\mathcal{W}} \begin{bmatrix} I_x^2 & I_x I_y \\ I_x I_y & I_y^2 \end{bmatrix}$, eigenvalues $\lambda_1 \ge \lambda_2$.`,
-        speaker: 'tomasi', text: 'A window is trackable only if its brightness changes in two different directions. To test that, we collect all the brightness gradients in the window into one small matrix, the **structure tensor**. Go to the article to understand how it works.' },
-      { topic: 'Flat, edge, corner', ref: 'Flat, edge, corner', hold: K.truckStop + 24, speaker: 'tomasi', text: 'Its two eigenvalues tell you how strongly brightness changes in the strongest and the weakest direction. Both small: flat. One large, one small: an edge. Both large: a corner.' },
+        speaker: 'tomasi', text: 'A window is trackable only if its brightness changes in two different directions. To test that, we collect all the brightness gradients in the window into one small matrix, the **structure tensor**.' },
+      { topic: 'Flat, edge, corner', ref: 'Flat, edge, corner', hold: K.truckStop + 24, speaker: 'tomasi', text: 'Its two eigenvalues tell you how strongly brightness changes in the strongest direction, and in the weakest. If both are small, the patch is flat. If one is large and one is small, it is an edge. If both are large, it is a corner.' },
       { speaker: 'wren', text: 'Why does a corner work when an edge doesn\'t?' },
       // OLD:
       // { topic: 'Flat, edge, corner', ref: 'Flat, edge, corner', hold: K.truckStop + 24,
@@ -292,8 +292,8 @@ Whole window: $u^\star = +1$ ✓` },
     },
     dialogue: [
       // OLD:
-      // { topic: 'Motion too large to linearise', ref: 'Image pyramids: coarse-to-fine tracking', speaker: 'wren', text: 'I\'m crossing Canal Street fast, and I\'m losing tracks. I\'m calling Dr. Kanade.', event: { call: 'kanade' } },
-      { topic: 'Motion too large to linearise', ref: 'Image pyramids: coarse-to-fine tracking', speaker: 'wren', text: 'I\'m hurrying across Canal Street and my points keep getting lost. Dr. Kanade, why?', event: { call: 'kanade' } },
+      // { topic: 'Motion too large to linearise', ref: 'Image pyramids: coarse-to-fine tracking', speaker: 'wren', text: 'I\'m crossing Canal Street fast, and I\'m losing tracks. I\'m calling Dr Kanade.', event: { call: 'kanade' } },
+      { topic: 'Motion too large to linearise', ref: 'Image pyramids: coarse-to-fine tracking', speaker: 'wren', text: 'I\'m hurrying across Canal Street and my points keep getting lost. Why, Dr Kanade?', event: { call: 'kanade' } },
       // OLD:
       // { topic: 'Image pyramids', ref: 'Image pyramids: coarse-to-fine tracking', hold: K.sprintStart + 26,
         // focus: { kind: 'pyramidlab', widget: ['pyramid-synth', 'pyramid'], at: { track: 'fastest' }, title: 'Try it: how far can one step reach?', body: R`Drag **frame gap** to make this point move farther, and **pyramid levels** to see how coarser levels shrink the shift.` },
@@ -304,8 +304,8 @@ Whole window: $u^\star = +1$ ✓` },
         math: R`At level $\ell$ the shift is $\mathbf{d}/2^{\ell}$. Solve at the top, then start the next level from $2\mathbf{d}^{\ell+1}$ and refine.`,
         speaker: 'kanade', text: 'You\'ve broken the small-motion assumption. One linear step only works for about a pixel. Look at the panel. At the starting setting, this point jumps about thirteen pixels, and a single level misses by the full thirteen. Shrink the picture and the motion shrinks with it. Drag pyramid levels and watch the pyramid land on the right answer. So we solve at the top, where motion is small, then refine level by level.', event: { hangup: true } },
       // OLD:
-      // { speaker: 'wren', text: 'The pyramid keeps up, but some of my tracks are now wrong. I\'m calling Dr. Tomasi.', event: { call: 'tomasi' } },
-      { speaker: 'wren', text: 'The pyramid keeps up, but some of my tracks are still wrong. Dr. Tomasi, how do I catch them?', event: { call: 'tomasi' } },
+      // { speaker: 'wren', text: 'The pyramid keeps up, but some of my tracks are now wrong. I\'m calling Dr Tomasi.', event: { call: 'tomasi' } },
+      { speaker: 'wren', text: 'The pyramid keeps up, but some of my tracks are still wrong. Dr Tomasi, how do I catch them?', event: { call: 'tomasi' } },
       // OLD:
       // { topic: 'The forward–backward check', ref: 'The forward–backward test and re-detection',
         // focus: { kind: 'fb', title: 'Forward–backward error', body: R`{{good|Ring}} radius = how far a point misses its start after tracking forward and back. {{lost|Red ×}}: dropped.` },
@@ -338,8 +338,8 @@ Whole window: $u^\star = +1$ ✓` },
     },
     dialogue: [
       // OLD:
-      // { topic: 'From detecting to tracking', ref: 'Tracking as image alignment', speaker: 'wren', text: 'The pyramid gets me close. But to follow each corner exactly, frame after frame, I need more. I\'m calling Dr. Kanade.', event: { call: 'kanade' } },
-      { topic: 'From detecting to tracking', ref: 'Tracking as image alignment', speaker: 'wren', text: 'The pyramid gets me close, but I want each corner exactly, frame after frame. Dr. Kanade, how can I do it?', event: { call: 'kanade' } },
+      // { topic: 'From detecting to tracking', ref: 'Tracking as image alignment', speaker: 'wren', text: 'The pyramid gets me close. But to follow each corner exactly, frame after frame, I need more. I\'m calling Dr Kanade.', event: { call: 'kanade' } },
+      { topic: 'From detecting to tracking', ref: 'Tracking as image alignment', speaker: 'wren', text: 'The pyramid gets me close, but I want each corner exactly, frame after frame. Dr Kanade, how can I do it?', event: { call: 'kanade' } },
       // OLD:
       // { topic: 'Tracking as image alignment', ref: 'Tracking as image alignment', hold: LK_FRAME,
         // focus: { kind: 'window', at: { track: 'auto', near: [300, 215] }, title: 'Template T', body: 'The patch in {{focus|this window}} from the previous frame. Find the shift that makes the new frame match it.' },
@@ -350,18 +350,18 @@ Whole window: $u^\star = +1$ ✓` },
         speaker: 'kanade', text: 'Treat it as alignment. The patch in this window, from the previous frame, is a template T.' },
       { hold: LK_FRAME,
         math: R`Find $\mathbf{p}$ minimising $E(\mathbf{p}) = \sum_{\mathbf{x}} \big[I(\mathbf{x} + \mathbf{p}) - T(\mathbf{x})\big]^2$.`,
-        speaker: 'kanade', text: 'Find the shift that makes the new frame match it, measured by the sum of squared differences.' },
+        speaker: 'kanade', text: 'Find the shift that makes the new frame match it, which is measured by the sum of squared differences.' },
       // OLD:
       // { topic: 'Solving H Δp = b', ref: 'Deriving H Δp = b', hold: LK_FRAME,
         // focus: { kind: 'lk', at: { track: 'auto', near: [300, 215] }, lag: 2, title: 'Lucas–Kanade on this corner (real pixels)', body: R`{{muted|Dashed}}: template. {{focus|Dots}}: each step. {{good|Green}}: result.` },
         // math: R`Linearise around $\mathbf{p}$: $\;H\,\Delta\mathbf{p} = \mathbf{b}$, $\;H = \sum \nabla I\,\nabla I^\top$, $\;\mathbf{b} = \sum \nabla I\,[T(\mathbf{x}) - I(\mathbf{x}{+}\mathbf{p})]$.`,
-        // speaker: 'kanade', text: 'Instead of trying every shift, linearise around the current guess, for example the pyramid\'s. That gives a small two-by-two system, with the same matrix as Dr. Tomasi\'s test. That is why corners are easy to track.' },
+        // speaker: 'kanade', text: 'Instead of trying every shift, linearise around the current guess, for example the pyramid\'s. That gives a small two-by-two system, with the same matrix as Dr Tomasi\'s test. That is why corners are easy to track.' },
       { topic: 'Solving H Δp = b', ref: 'One step: H Δp = b', hold: LK_FRAME,
         math: R`Linearise around $\mathbf{p}$: $\;H\,\Delta\mathbf{p} = \mathbf{b}$, $\;H = \sum \nabla I\,\nabla I^\top$, $\;\mathbf{b} = \sum \nabla I\,[T(\mathbf{x}) - I(\mathbf{x}{+}\mathbf{p})]$.`,
-        speaker: 'kanade', text: 'Instead of trying every shift, approximate the image as a straight line around the current guess. That gives a tiny two-by-two system.' },
+        speaker: 'kanade', text: 'Instead of trying every shift, approximate the image as a straight line around the current guess. '}  //That gives a tiny two-by-two system.' },
       { hold: LK_FRAME,
         focus: { kind: 'lk', at: { track: 'auto', near: [300, 215] }, lag: 2, title: 'Lucas–Kanade on this corner (real pixels)', body: R`{{muted|Dashed}}: template. {{focus|Dots}}: each step. {{good|Green}}: result.` },
-        speaker: 'kanade', text: 'Its matrix is the very one from Dr. Tomasi\'s test. That is why corners are easy to track. Watch the dots: each is one step, and green is the result.' },
+        speaker: 'kanade', text: 'Its matrix is the very one from Dr Tomasi\'s test. That is why corners are easy to track. Watch the dots: each is one step, and green is the result.' },
       // OLD:
       // { topic: 'Gauss–Newton iterations', ref: 'Gauss–Newton iteration', hold: LK_FRAME,
         // focus: { kind: 'lk', at: { track: 'auto', near: [300, 215] }, lag: 2, startOffset: [1.2, -0.9], inset: true, title: 'Step by step', body: R`Started from a deliberately wrong guess, 1.5 px from the answer. Watch the error image fade.` },
@@ -370,7 +370,7 @@ Whole window: $u^\star = +1$ ✓` },
       { topic: 'Gauss–Newton iterations', ref: 'Gauss–Newton iteration', hold: LK_FRAME,
         focus: { kind: 'lk', at: { track: 'auto', near: [300, 215] }, lag: 2, startOffset: [1.2, -0.9], inset: true, title: 'Step by step', body: R`Started from a deliberately wrong guess, 1.5 px from the answer. Watch the error image fade.` },
         math: R`Repeat $\mathbf{p} \leftarrow \mathbf{p} + \Delta\mathbf{p}$ until $\|\Delta\mathbf{p}\| < 0.01$ px. Values between pixels come from **bilinear interpolation**, so $\mathbf{p}$ is sub-pixel.`,
-        speaker: 'kanade', text: 'This run starts from a deliberately wrong guess, one and a half pixels off. Watch the error image fade as we repeat. Why not stop after one step? Because the picture isn\'t truly a straight line, so one step only gets close. After three or four steps we\'re within a fraction of a pixel. Read the article.', event: { hangup: true } },
+        speaker: 'kanade', text: 'This run starts from a deliberately wrong guess, one and a half pixels off. Watch the error image fade as we repeat. Why not stop after one step? Because the picture isn\'t truly a straight line, so one step only gets close. After three or four steps we\'re within a fraction of a pixel.', event: { hangup: true } },
       // OLD:
       // { topic: 'KLT tracking, live', ref: 'Gauss–Newton iteration', focus: { kind: 'flow', at: { track: 'auto', near: [300, 215] }, lag: 6, scale: 4, title: 'Same corner, every frame', body: 'The {{focus|arrow}} follows one corner. Its ID never changes while it stays in view.' },
         // speaker: 'wren', text: 'Now I\'m tracking dozens of corners, each keeping its own ID from frame to frame.' },
@@ -400,17 +400,17 @@ Whole window: $u^\star = +1$ ✓` },
     },
     dialogue: [
       // OLD:
-      // { topic: 'Keeping a hundred points alive', ref: 'The KLT loop', speaker: 'wren', text: 'People cross my view and points leave the frame, yet I keep about a hundred tracks. How? I\'m calling Dr. Tomasi.', event: { call: 'tomasi' } },
-      { topic: 'Keeping a hundred points alive', ref: 'The KLT loop', loop: true, speaker: 'wren', text: 'People cross my view and points leave the frame, yet I keep about a hundred tracks. How am I capable of that, Dr. Tomasi?', event: { call: 'tomasi' } },
+      // { topic: 'Keeping a hundred points alive', ref: 'The KLT loop', speaker: 'wren', text: 'People cross my view and points leave the frame, yet I keep about a hundred tracks. How? I\'m calling Dr Tomasi.', event: { call: 'tomasi' } },
+      { topic: 'Keeping a hundred points alive', ref: 'The KLT loop', loop: true, speaker: 'wren', text: 'People cross my view and points leave the frame, yet I keep about a hundred tracks. How am I capable of that, Dr Tomasi?', event: { call: 'tomasi' } },
       // OLD:
       // { topic: 'Step 1 · Detect', ref: 'One frame of the loop', focus: { kind: 'heatmap', spacing: true, title: 'Detect', body: R`Strongest corners ({{heat|colour}}) first, a minimum distance from existing tracks ({{muted|dashed circles}}).` },
         // speaker: 'tomasi', text: 'Every frame runs the same four-step loop. First, **detect**: take the strongest corners, spaced apart.' },
       { topic: 'Step 1 · Detect', ref: 'One frame of the loop', loop: 'detect',
         focus: { kind: 'heatmap', spacing: true, title: 'Detect', body: R`Strongest corners ({{heat|colour}}) first, a minimum distance from existing tracks ({{muted|dashed circles}}).` },
         speaker: 'tomasi', text: 'Every frame runs the same four-step loop. First, **detect**: take the strongest corners, shown in color.' },
-      { loop: 'detect',
-        focus: { kind: 'heatmap', spacing: true, title: 'Detect', body: R`Strongest corners ({{heat|colour}}) first, a minimum distance from existing tracks ({{muted|dashed circles}}).` },
-        speaker: 'tomasi', text: 'They must stay a minimum distance from existing tracks, the dashed circles, so they don\'t bunch up.' },
+      // { loop: 'detect',
+      //   focus: { kind: 'heatmap', spacing: true, title: 'Detect', body: R`Strongest corners ({{heat|colour}}) first, a minimum distance from existing tracks ({{muted|dashed circles}}).` },
+      //   speaker: 'tomasi', text: 'They must stay a minimum distance from existing tracks, the dashed circles, so they don\'t bunch up.' },
       // OLD:
       // { topic: 'Step 2 · Track', ref: 'The KLT loop', focus: { kind: 'flowfield', lag: 4, scale: 3, title: 'Track', body: 'Every {{focus|arrow}} is one track\'s shift from pyramidal Lucas–Kanade.' },
         // speaker: 'tomasi', text: 'Second, **track** each one into the next frame with pyramidal Lucas–Kanade.' },
@@ -426,9 +426,9 @@ Whole window: $u^\star = +1$ ✓` },
       // OLD:
       // { topic: 'Step 4 · Replenish', ref: 'One frame of the loop', hold: K.parkStart + 345, focus: { kind: 'replenish', lag: 12, title: 'Replenish', body: 'Last half second: {{lost|red ×}} where tracks were lost, {{fresh|green rings}} where new corners were found.' },
         // speaker: 'tomasi', text: 'Fourth, **replenish**: detect new corners wherever tracks were lost. A lost point never gets its old ID back.', event: { hangup: true } },
-      { topic: 'Step 4 · Replenish', ref: 'One frame of the loop', loop: 'replenish', hold: K.parkStart + 345,
-        focus: { kind: 'replenish', lag: 12, title: 'Replenish', body: 'Last half second: {{lost|red ×}} where tracks were lost, {{fresh|green rings}} where new corners were found.' },
-        speaker: 'tomasi', text: 'Fourth, **replenish**: red crosses show where tracks were lost, and green rings show new corners. A lost point never gets its old ID back. Read the article to follow the math.', event: { hangup: true } },
+      // { topic: 'Step 4 · Replenish', ref: 'One frame of the loop', loop: 'replenish', hold: K.parkStart + 345,
+      //   focus: { kind: 'replenish', lag: 12, title: 'Replenish', body: 'Last half second: {{lost|red ×}} where tracks were lost, {{fresh|green rings}} where new corners were found.' },
+      //   speaker: 'tomasi', text: 'Fourth, **replenish**: red crosses show where tracks were lost, and green rings show new corners. A lost point never gets its old ID back. Read the article to follow the math.', event: { hangup: true } },
     ],
     notebook: nb_crowd,
     widget: 'pipeline-inspector',
@@ -452,8 +452,8 @@ Whole window: $u^\star = +1$ ✓` },
     },
     dialogue: [
       // OLD:
-      // { topic: 'Tracks as a tool', ref: 'Why KLT suits these jobs', speaker: 'wren', text: 'I can see my dock. Dr. Kanade, what are these tracks good for?', event: { call: 'kanade' } },
-      { topic: 'Tracks as a tool', ref: 'Why KLT suits these jobs', speaker: 'wren', text: 'I can see my dock! Dr. Kanade, what are all these tracks good for?', event: { call: 'kanade' } },
+      // { topic: 'Tracks as a tool', ref: 'Why KLT suits these jobs', speaker: 'wren', text: 'I can see my dock. Dr Kanade, what are these tracks good for?', event: { call: 'kanade' } },
+      { topic: 'Tracks as a tool', ref: 'Why KLT suits these jobs', speaker: 'wren', text: 'I can see my dock! Dr Kanade, I’m tracking all these points now. How can I actually use them?', event: { call: 'kanade' } },
       // OLD:
       // { topic: 'Visual odometry', ref: 'Visual odometry (outline)', focus: { kind: 'flow', at: { track: 'auto' }, lag: 6, scale: 4, title: 'Motion from tracks', body: 'Fit one camera motion to all tracks at once. The {{focus|arrow}} is one of them.' },
         // speaker: 'kanade', text: 'First, **odometry**: fit one camera motion to all the tracks, and you get your path without GPS.' },
@@ -501,11 +501,11 @@ Whole window: $u^\star = +1$ ✓` },
     dialogue: [
       // OLD:
       // { topic: 'Recap', ref: 'Strengths', speaker: 'wren', text: 'Delivered, with no GPS. KLT in one breath: follow small windows at corners, refine each shift to a fraction of a pixel, use pyramids for big jumps, and check every track.' },
-      { topic: 'Recap', ref: 'Strengths', speaker: 'wren', text: 'Delivered, with no GPS. In one breath: follow small windows at corners, refine each shift to a fraction of a pixel, use pyramids for big jumps, and check every track.' },
+      { topic: 'Recap', ref: 'Strengths', speaker: 'wren', text: 'Delivered, with no GPS. In conclusion, follow small windows at corners, refine each shift to a fraction of a pixel, use pyramids for big jumps, and check every track.' },
       // OLD:
       // { topic: 'Strengths and limits', ref: 'Limits', speaker: 'wren', text: 'It is fast and precise, but it needs small motion and steady lighting, and it forgets a point once it is lost. The Article shows what came next.' },
-      { topic: 'Strengths and limits', ref: 'Limits', speaker: 'wren', text: 'KLT only works while its three assumptions hold: steady brightness, small motion, and neighbors that move together. Break one and tracks drift.' },
-      { speaker: 'wren', text: 'Newer methods go after exactly these limits, and the Article lists them.' },
+      { topic: 'Strengths and limits', ref: 'Limits', speaker: 'wren', text: 'KLT only works while its three assumptions hold: steady brightness, small motion, and neighbours that move together. Break one and the tracks drift.' },
+      { speaker: 'wren', text: 'Newer methods listed in the article overcome these limitations' },
     ],
     notebook: nb_debrief,
     widget: null,
@@ -543,4 +543,4 @@ export const references = [
   { label: 'EKLT: Asynchronous Photometric Feature Tracking Using Events and Frames', source: 'D. Gehrig, H. Rebecq, G. Gallego & D. Scaramuzza, IJCV 2020' },
 ];
 
-export const disclaimer = 'Dr. Lucas, Dr. Kanade and Dr. Tomasi are fictional characters named in honour of the researchers behind the KLT tracker. Their lines are written for this story and are not quotes. The footage is a Three.js simulation of the real route from Happy Star Bakery to Seward Park: street layout and buildings from OpenStreetMap (© OpenStreetMap contributors, ODbL), photo textures CC0 from Poly Haven; storefront interiors and generic signs are invented.';
+export const disclaimer = 'Dr Lucas, Dr Kanade and Dr Tomasi are fictional characters named in honour of the researchers behind the KLT tracker. Their lines are written for this story and are not quotes. The footage is a Three.js simulation of the real route from Happy Star Bakery to Seward Park: street layout and buildings from OpenStreetMap (© OpenStreetMap contributors, ODbL), photo textures CC0 from Poly Haven; storefront interiors and generic signs are invented.';
