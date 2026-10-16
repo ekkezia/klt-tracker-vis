@@ -505,8 +505,11 @@ const KINDS = {
   window: {
     reach: (it) => (it.spec.win ?? 7) + 4,
     draw(ctx, it, a, info) {
-      windowBox(ctx, a, it.spec.win ?? 7, info.px, info.colors.focus, true);
-      mark(it, 'focus', a.x, a.y, it.spec.win ?? 7);
+      const half = it.spec.win ?? 7;
+      ctx.fillStyle = 'rgba(94, 246, 255, .13)'; // tint the window so it reads as "these pixels"
+      ctx.fillRect(a.x - half - 0.5, a.y - half - 0.5, 2 * half + 1, 2 * half + 1);
+      windowBox(ctx, a, half, info.px, info.colors.focus, true);
+      mark(it, 'focus', a.x, a.y, half);
     },
   },
 

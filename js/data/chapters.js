@@ -189,7 +189,8 @@ export const chapters = [
         // math: R`Minimise $\sum_{\mathcal{W}} (I_x u + I_t)^2 \;\Rightarrow\; u^\star = -\dfrac{\sum I_x I_t}{\sum I_x^2} = -\dfrac{-40.5}{40.5} = +1$.`,
         // speaker: 'kanade', text: 'One pixel alone cannot pin down the motion, and it can even give a wrong answer. So assume the whole small window moves together, and pick the one shift that fits all its pixels best. That is the **Lucas–Kanade** idea.', event: { hangup: true } },
       { topic: 'Least squares over a window', ref: 'Least squares over a window',
-        focus: { kind: 'card', title: '1D: one pixel vs. the window', body: R`
+        focus: [{ kind: 'window', at: { track: 'auto', near: [700, 150] }, win: 12, title: 'The window', body: 'All the pixels in {{focus|this window}} share one motion; the shift that fits them all best is the answer.' },
+          { kind: 'card', title: '1D: one pixel vs. the window', body: R`
 A bright pixel moves $+1$.
 
 | pixel | 2 | 3 | 4 |
@@ -197,15 +198,12 @@ A bright pixel moves $+1$.
 | $I_t$ | $0$ | $-9$ | $+9$ |
 | alone: $u = -I_t/I_x$ | $0$ | ? | $2$ |
 
-Whole window: $u^\star = +1$ ✓` },
+Whole window: $u^\star = +1$ ✓` }],
         math: R`Minimise $\sum_{\mathcal{W}} (I_x u + I_t)^2 \;\Rightarrow\; u^\star = -\dfrac{\sum I_x I_t}{\sum I_x^2} = -\dfrac{-40.5}{40.5} = +1$.`,
         speaker: 'kanade', text: 'From assumption three. Take a small window and let all its pixels share one motion. Now you have many equations, and you pick the shift that fits them all best. That is the **Lucas–Kanade** idea.', event: { hangup: true } },
       // OLD:
       // { topic: 'Optical flow, live', ref: 'The three assumptions', focus: { kind: 'flowfield', lag: 6, scale: 4, title: 'Flow while driving forward', body: 'The {{focus|arrows}} point outward from the spot I am driving toward; nearby points move faster.' },
         // speaker: 'wren', text: 'Driving forward, the arrows spread out from where I\'m heading. Each one is only a few pixels per frame, which is exactly what the method needs.' },
-      { topic: 'Optical flow, live', ref: 'The three assumptions',
-        focus: { kind: 'flowfield', lag: 6, scale: 4, title: 'Flow while driving forward', body: 'The {{focus|arrows}} point outward from the spot I am driving toward; nearby points move faster.' },
-        speaker: 'wren', text: '' },
     ],
     notebook: nb_lobby,
     widget: [{ id: 'flow-1d', at: 'Least squares over a window' }],
