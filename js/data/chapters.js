@@ -537,7 +537,7 @@ export const references = [
   { label: 'EKLT: Asynchronous Photometric Feature Tracking Using Events and Frames', source: 'D. Gehrig, H. Rebecq, G. Gallego & D. Scaramuzza, IJCV 2020' },
   { label: 'Object tracking: A survey', source: 'A. Yilmaz, O. Javed, and M. Shah, ACM Computing Surveys (CSUR) 2006' },
   { label: 'Blog on KLT tracker', source: 'cv-learn.com', url: 'https://www.cv-learn.com/visual-slam-roadmap/level-02-getting-familiar/klt-tracker/' },
-  { label: 'Blog on Optical flow', source: 'cv-learn.com', url: 'https://cv-learn.comhttps://www.cv-learn.com/visual-slam-roadmap/level-02-getting-familiar/optical-flow/' },
+  { label: 'Blog on Optical flow', source: 'cv-learn.com', url: 'https://www.cv-learn.com/visual-slam-roadmap/level-02-getting-familiar/optical-flow/' },
   { label: '16-385 Computer Vision: Tracking (KLT) slides', source: 'Carnegie Mellon University', url: 'https://www.cs.cmu.edu/~16385/s17/Slides/15.1_Tracking__KLT.pdf' },
   { label: 'KLT-Feature-Tracking', source: 'ZheyuanXie (GitHub)', url: 'https://github.com/ZheyuanXie/KLT-Feature-Tracking' },
 ];
